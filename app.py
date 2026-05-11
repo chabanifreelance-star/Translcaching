@@ -247,17 +247,21 @@ def translate_cached(text: str, lang_code: str) -> str:
     except Exception as e:
         return f"[Translation error: {e}]"
 
-# ─── Transcription helper ─────────────────────────────────────────────────────
-def transcribe(audio_bytes: bytes, api_key: str) -> str:
-    import openai
-    client = openai.OpenAI(api_key=api_key)
+# ─── Transcription helper (100% free, no API key) ────────────────────────────
+def transcribe(audio_bytes: bytes) -> str:
+    import speech_recognition as sr
+    recognizer = sr.Recognizer()
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
         tmp.write(audio_bytes)
         tmp_path = tmp.name
     try:
-        with open(tmp_path, "rb") as f:
-            result = client.audio.transcriptions.create(model="whisper-1", file=f)
-        return result.text.strip()
+        with sr.AudioFile(tmp_path) as source:
+            audio = recognizer.record(source)
+        return recognizer.recognize_google(audio)   # free, no key needed
+    except sr.UnknownValueError:
+        return ""   # no speech detected
+    except sr.RequestError as e:
+        raise RuntimeError(f"Google Speech service error: {e}")
     finally:
         os.unlink(tmp_path)
 
@@ -275,16 +279,8 @@ with st.sidebar:
     st.divider()
 
     if role == "🎤 Speaker":
-        st.markdown("**OpenAI API Key**")
-        api_key = st.text_input(
-            "Paste your key",
-            type="password",
-            placeholder="sk-...",
-            label_visibility="collapsed",
-        )
-        st.caption("Used only for Whisper transcription. [Get a key →](https://platform.openai.com/api-keys)")
-    else:
-        api_key = None
+        st.success("✅ Free mode — no API key needed!")
+        st.caption("Powered by Google Speech Recognition (free, no account needed).")
 
     st.divider()
     count = get_segment_count()
@@ -308,26 +304,23 @@ if role == "🎤 Speaker":
         audio_input = st.audio_input("🎙️ Click to record your segment", key="mic")
 
         if audio_input:
-            if not api_key:
-                st.error("⚠️ Please add your OpenAI API key in the sidebar to enable transcription.")
-            else:
-                with st.spinner("Transcribing with Whisper…"):
-                    try:
-                        text = transcribe(audio_input.getvalue(), api_key)
-                        if text:
-                            save_segment(text)
-                            st.markdown(
-                                f"""<div class="translation-card">
-                                    <div class="timestamp">✅ Broadcasted at {datetime.now().strftime('%H:%M:%S')}</div>
-                                    <div class="translated">{text}</div>
-                                </div>""",
-                                unsafe_allow_html=True,
-                            )
-                            st.cache_data.clear()   # invalidate translation cache for audience
-                        else:
-                            st.warning("No speech detected — try again.")
-                    except Exception as e:
-                        st.error(f"Transcription failed: {e}")
+            with st.spinner("🎙️ Transcribing…"):
+                try:
+                    text = transcribe(audio_input.getvalue())
+                    if text:
+                        save_segment(text)
+                        st.markdown(
+                            f"""<div class="translation-card">
+                                <div class="timestamp">✅ Broadcasted at {datetime.now().strftime('%H:%M:%S')}</div>
+                                <div class="translated">{text}</div>
+                            </div>""",
+                            unsafe_allow_html=True,
+                        )
+                        st.cache_data.clear()
+                    else:
+                        st.warning("No speech detected — try again.")
+                except Exception as e:
+                    st.error(f"Transcription failed: {e}")
 
     with col_history:
         st.markdown("### 📋 Broadcast history")
