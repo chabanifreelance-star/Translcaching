@@ -1,3 +1,5 @@
 streamlit
 openai
 deep-translator
+SpeechRecognition
+pydub
