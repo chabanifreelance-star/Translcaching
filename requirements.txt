@@ -1,8 +1,10 @@
 streamlit
 openai
-deep-translator
 SpeechRecognition
 pydub
-faster-whisper
-sounddevice
 numpy
+sounddevice
+faster-whisper
+deep-translator
+ctranslate2
+av
