@@ -85,27 +85,32 @@ def db_clear():
 init_db()
 
 # ─────────────────────────────────────────────────────────────────────────────
-# WHISPER
+# WHISPER  — now accepts an explicit language code
 # ─────────────────────────────────────────────────────────────────────────────
 @st.cache_resource(show_spinner=False)
 def get_whisper():
     try:
         from faster_whisper import WhisperModel
-        try:    return WhisperModel("base",device="cuda",compute_type="float16")
-        except: return WhisperModel("base",device="cpu", compute_type="int8")
+        try:    return WhisperModel("base", device="cuda", compute_type="float16")
+        except: return WhisperModel("base", device="cpu",  compute_type="int8")
     except: return None
 
-def transcribe(b: bytes):
+def transcribe(b: bytes, lang_code: str = None):
+    """Transcribe audio bytes.  lang_code: ISO-639-1 e.g. 'en','ar','fr'"""
     m = get_whisper()
-    if not m: return "",""
-    with tempfile.NamedTemporaryFile(suffix=".wav",delete=False) as f:
-        f.write(b); p=f.name
+    if not m: return "", lang_code or ""
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+        f.write(b); p = f.name
     try:
-        segs,info = m.transcribe(p,task="transcribe",language=None,
-                                  beam_size=5,vad_filter=True,
-                                  vad_parameters={"min_silence_duration_ms":300})
-        return " ".join(s.text.strip() for s in segs).strip(), info.language
-    except: return "",""
+        segs, info = m.transcribe(
+            p, task="transcribe",
+            language=lang_code,          # None → auto-detect (unused now)
+            beam_size=5, vad_filter=True,
+            vad_parameters={"min_silence_duration_ms": 300}
+        )
+        detected = lang_code or info.language
+        return " ".join(s.text.strip() for s in segs).strip(), detected
+    except: return "", lang_code or ""
     finally:
         try: os.unlink(p)
         except: pass
@@ -116,18 +121,29 @@ def transcribe(b: bytes):
 @st.cache_data(ttl=7200, show_spinner=False)
 def tr(text, target, source="auto"):
     if not text.strip(): return text
-    src = source.split("-")[0].lower() if source and source!="auto" else "auto"
+    src = source.split("-")[0].lower() if source and source != "auto" else "auto"
     tgt = target.split("-")[0].lower()
-    if src!="auto" and src==tgt: return text
+    if src != "auto" and src == tgt: return text
     try:
         from deep_translator import GoogleTranslator
-        return GoogleTranslator(source=src,target=target).translate(text) or text
+        return GoogleTranslator(source=src, target=target).translate(text) or text
     except Exception as e: return f"[{e}]"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# LANGUAGES
+# LANGUAGE LISTS
 # ─────────────────────────────────────────────────────────────────────────────
-LANGS = {
+
+# Speaker can choose from these 5 languages
+SPEAKER_LANGS = {
+    "🇬🇧 English":        "en",
+    "🇸🇦 Arabic / عربي":  "ar",
+    "🇫🇷 French":         "fr",
+    "🇹🇷 Turkish":        "tr",
+    "🇪🇸 Spanish":        "es",
+}
+
+# Audience picks any of these for subtitles
+AUDIENCE_LANGS = {
     "🇸🇦 Arabic / عربي":"ar","🇬🇧 English":"en","🇫🇷 French / Français":"fr",
     "🇪🇸 Spanish / Español":"es","🇩🇪 German / Deutsch":"de","🇹🇷 Turkish":"tr",
     "🇮🇹 Italian":"it","🇨🇳 Chinese / 中文":"zh-CN","🇷🇺 Russian":"ru",
@@ -140,24 +156,27 @@ LANGS = {
 # ─────────────────────────────────────────────────────────────────────────────
 # SESSION STATE
 # ─────────────────────────────────────────────────────────────────────────────
-for k,v in {"page":"home","last_hash":None,"last_txt":"","last_lang":""}.items():
-    if k not in st.session_state: st.session_state[k]=v
+for k, v in {"page":"home","last_hash":None,"last_txt":"","last_lang":""}.items():
+    if k not in st.session_state: st.session_state[k] = v
 
 # URL param routing
-p = st.query_params.get("page","home")
-if p in ("speaker","audience","home"):
+p = st.query_params.get("page", "home")
+if p in ("speaker", "audience", "home"):
     st.session_state.page = p
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#  H O M E
+#  H O M E   (compact — two big buttons, done)
 # ═════════════════════════════════════════════════════════════════════════════
 if st.session_state.page == "home":
 
     components.html(PALETTE + """
 <style>
-body{min-height:100vh;display:flex;flex-direction:column;
-  align-items:center;padding:56px 20px 60px;overflow-x:hidden;}
+body{
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:32px 20px 40px;overflow-x:hidden;gap:0;
+}
 
 /* top flag bar */
 body::before{content:'';position:fixed;top:0;left:0;right:0;height:4px;z-index:99;
@@ -165,61 +184,51 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:4px;z-index:9
   var(--green) 50%,var(--green) 75%,var(--bg) 75%);}
 
 /* brand */
-.brand{text-align:center;margin-bottom:6px;}
+.brand{text-align:center;margin-bottom:10px;}
 .b-live{display:block;font-family:'Bebas Neue',sans-serif;
-  font-size:clamp(80px,14vw,150px);line-height:.8;letter-spacing:.04em;
+  font-size:clamp(56px,10vw,110px);line-height:.82;letter-spacing:.04em;
   background:linear-gradient(135deg,var(--rl) 0%,var(--melon) 55%,var(--white) 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 .b-trans{display:block;font-family:'Bebas Neue',sans-serif;
-  font-size:clamp(80px,14vw,150px);line-height:.8;letter-spacing:.04em;
+  font-size:clamp(56px,10vw,110px);line-height:.82;letter-spacing:.04em;
   background:linear-gradient(135deg,var(--gl) 0%,var(--white) 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.b-sub{font-size:12px;color:#444;letter-spacing:.2em;text-transform:uppercase;
-  margin-top:12px;margin-bottom:38px;}
+.b-sub{font-size:11px;color:#3a3a3a;letter-spacing:.2em;text-transform:uppercase;
+  margin-top:10px;margin-bottom:28px;}
 
 /* flag stripe */
-.flag{display:flex;height:4px;width:100%;max-width:680px;
-  border-radius:2px;overflow:hidden;margin:0 auto 44px;}
+.flag{display:flex;height:3px;width:100%;max-width:560px;
+  border-radius:2px;overflow:hidden;margin:0 auto 32px;}
 .f1{flex:1;background:#282828;}.f2{flex:1;background:#383838;}
 .f3{flex:1;background:var(--green);}.f4{flex:1;background:var(--red);}
 
 /* role grid */
-.grid{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;
-  max-width:680px;margin-bottom:52px;}
+.grid{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;
+  max-width:640px;width:100%;}
 
-.card{width:300px;background:var(--card);border:1px solid var(--b);
-  border-radius:22px;padding:36px 28px 30px;display:block;
-  position:relative;overflow:hidden;transition:transform .25s,box-shadow .25s,border-color .25s;}
-.card:hover{transform:translateY(-5px);border-color:#333;}
-.card.spk:hover{box-shadow:0 20px 60px rgba(206,17,38,.22);}
-.card.aud:hover{box-shadow:0 20px 60px rgba(0,122,61,.22);}
+.card{flex:1;min-width:220px;max-width:290px;background:var(--card);
+  border:1px solid var(--b);border-radius:20px;padding:28px 22px 24px;
+  display:block;position:relative;overflow:hidden;
+  transition:transform .25s,box-shadow .25s,border-color .25s;}
+.card:hover{transform:translateY(-4px);border-color:#333;}
+.card.spk:hover{box-shadow:0 16px 48px rgba(206,17,38,.22);}
+.card.aud:hover{box-shadow:0 16px 48px rgba(0,122,61,.22);}
 
-/* glow blob */
-.card::before{content:'';position:absolute;width:220px;height:220px;
-  border-radius:50%;top:-70px;left:-70px;pointer-events:none;transition:opacity .3s;}
-.card.spk::before{background:radial-gradient(circle,rgba(206,17,38,.2) 0%,transparent 70%);opacity:.7;}
-.card.aud::before{background:radial-gradient(circle,rgba(0,122,61,.2) 0%,transparent 70%);opacity:.7;}
-.card:hover::before{opacity:1;}
+.card::before{content:'';position:absolute;width:200px;height:200px;
+  border-radius:50%;top:-60px;left:-60px;pointer-events:none;}
+.card.spk::before{background:radial-gradient(circle,rgba(206,17,38,.18) 0%,transparent 70%);}
+.card.aud::before{background:radial-gradient(circle,rgba(0,122,61,.18) 0%,transparent 70%);}
 
-.c-icon{font-size:50px;display:block;margin-bottom:16px;}
-.c-name{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:.06em;margin-bottom:10px;}
+.c-icon{font-size:44px;display:block;margin-bottom:12px;}
+.c-name{font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:.06em;margin-bottom:8px;}
 .c-name.spk{color:var(--rl);}.c-name.aud{color:var(--gl);}
-.c-desc{font-size:14px;color:#5a5a5a;line-height:1.75;margin-bottom:22px;}
-.c-btn{display:inline-block;padding:10px 24px;border-radius:8px;
-  font-weight:700;font-size:12px;letter-spacing:.1em;text-transform:uppercase;}
+.c-desc{font-size:13px;color:#4a4a4a;line-height:1.65;margin-bottom:18px;}
+.c-btn{display:inline-block;padding:9px 20px;border-radius:7px;
+  font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;}
 .c-btn.spk{background:rgba(206,17,38,.12);color:var(--rl);border:1px solid rgba(206,17,38,.3);}
 .c-btn.aud{background:rgba(0,122,61,.12);color:var(--gl);border:1px solid rgba(0,122,61,.3);}
 
-/* features */
-.feats{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;
-  max-width:680px;margin-bottom:52px;}
-.feat{width:150px;background:var(--card);border:1px solid var(--b);
-  border-radius:14px;padding:18px 18px 16px;}
-.fi{font-size:24px;margin-bottom:8px;}
-.ft{font-size:13px;font-weight:700;color:#ccc;margin-bottom:5px;}
-.fd{font-size:12px;color:#4a4a4a;line-height:1.6;}
-
-.footer{font-size:11px;color:#252525;letter-spacing:.08em;text-align:center;}
+.footer{font-size:10px;color:#232323;letter-spacing:.08em;text-align:center;margin-top:28px;}
 </style>
 
 <div class="brand">
@@ -235,45 +244,32 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:4px;z-index:9
     <span class="c-icon">🎤</span>
     <div class="c-name spk">SPEAKER</div>
     <div class="c-desc">You are presenting.<br>
-      Record your speech — the AI auto-detects your language
-      and broadcasts it live to every audience member.</div>
+      Choose your language, record your speech, and broadcast it live.</div>
     <span class="c-btn spk">I am the Speaker &rarr;</span>
   </a>
   <a class="card aud" href="?page=audience">
     <span class="c-icon">👥</span>
     <div class="c-name aud">AUDIENCE</div>
     <div class="c-desc">You are listening.<br>
-      Choose your language and read live translated
-      subtitles — updated automatically every few seconds.</div>
+      Pick your language and read live translated subtitles.</div>
     <span class="c-btn aud">I am Audience &rarr;</span>
   </a>
 </div>
 
-<div class="feats">
-  <div class="feat"><div class="fi">🌍</div><div class="ft">99 Languages</div>
-    <div class="fd">Arabic, French, Spanish, Chinese, Russian — auto-detected</div></div>
-  <div class="feat"><div class="fi">🤫</div><div class="ft">Auto-Stop</div>
-    <div class="fd">4 seconds of silence → auto-processes, no button needed</div></div>
-  <div class="feat"><div class="fi">🔒</div><div class="ft">100% Free</div>
-    <div class="fd">No API key, no account, no cost — runs fully local</div></div>
-  <div class="feat"><div class="fi">📱</div><div class="ft">Any Device</div>
-    <div class="fd">Works in any modern browser — phone, tablet, laptop</div></div>
-</div>
-
 <div class="footer">Made with 🇵🇸 &nbsp;·&nbsp; 100% free &nbsp;·&nbsp; faster-whisper &nbsp;·&nbsp; deep-translator</div>
-""", height=920, scrolling=False)
+""", height=580, scrolling=False)
 
-    # Streamlit buttons as fallback (if href navigation blocked in iframe)
-    c1,_,c2 = st.columns([1,.2,1])
+    # Streamlit buttons as fallback (href navigation is blocked inside iframe)
+    c1, _, c2 = st.columns([1, .1, 1])
     with c1:
         if st.button("🎤  Enter as Speaker", use_container_width=True):
-            st.session_state.page="speaker"
-            st.query_params["page"]="speaker"
+            st.session_state.page = "speaker"
+            st.query_params["page"] = "speaker"
             st.rerun()
     with c2:
         if st.button("👥  Enter as Audience", use_container_width=True):
-            st.session_state.page="audience"
-            st.query_params["page"]="audience"
+            st.session_state.page = "audience"
+            st.query_params["page"] = "audience"
             st.rerun()
 
 
@@ -299,203 +295,99 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:4px;z-index:9
 .f3{flex:1;background:var(--green);}.f4{flex:1;background:var(--red);}
 </style>
 <div class="title">SPEAK<br>NOW</div>
-<div class="sub">Any language · Auto-detected · Broadcast live</div>
+<div class="sub">Choose your language &nbsp;·&nbsp; Record &nbsp;·&nbsp; Broadcast live</div>
 <div class="flag"><div class="f1"></div><div class="f2"></div>
   <div class="f3"></div><div class="f4"></div></div>
 """, height=170, scrolling=False)
 
-    if st.button("← Back to Home", key="spk_home"):
-        st.session_state.page="home"
-        st.query_params["page"]="home"
-        st.rerun()
+    cb, _, cback = st.columns([3, 1, 1])
+    with cback:
+        if st.button("← Home", use_container_width=True, key="spk_home"):
+            st.session_state.page = "home"
+            st.query_params["page"] = "home"
+            st.rerun()
 
-    # ── JS Silence-detecting recorder ─────────────────────────────────────────
+    # ── Language selector ─────────────────────────────────────────────────────
     components.html(PALETTE + """
 <style>
-body{background:transparent;padding:0 4px;}
-#box{background:var(--card);border:1px solid var(--b);border-radius:18px;padding:24px;}
-
-#btn-s,#btn-x{
-  width:100%;padding:20px;border-radius:12px;border:none;cursor:pointer;
-  font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:.08em;
-  display:flex;align-items:center;justify-content:center;gap:14px;transition:all .2s;}
-#btn-s{background:linear-gradient(135deg,var(--red),#a00e1b);color:#fff;
-  box-shadow:0 6px 32px rgba(206,17,38,.4);}
-#btn-s:hover{transform:translateY(-2px);box-shadow:0 12px 44px rgba(206,17,38,.5);}
-#btn-x{background:var(--card2);color:var(--rl);border:2px solid rgba(206,17,38,.3);display:none;}
-#btn-x:hover{background:#222;}
-
-#bars{display:none;align-items:flex-end;justify-content:center;
-  gap:3px;height:44px;margin:16px 0 4px;}
-.b{width:5px;background:var(--red);border-radius:3px;min-height:3px;
-  transition:height .08s ease;}
-
-#sw{background:#1c1c1c;border-radius:4px;height:5px;margin:10px 0 4px;overflow:hidden;display:none;}
-#sf{height:100%;border-radius:4px;width:0%;transition:width .25s linear;}
-
-#status{font-size:13px;font-family:monospace;color:var(--muted);
-  text-align:center;margin-top:8px;min-height:18px;}
+body{background:transparent;padding:4px 0 2px;}
+.lbl{font-size:11px;color:#3a3a3a;letter-spacing:.14em;text-transform:uppercase;
+  font-family:'JetBrains Mono',monospace;margin-bottom:6px;}
 </style>
+<div class="lbl">🌐 &nbsp; Speaker language — choose before recording</div>
+""", height=34, scrolling=False)
 
-<div id="box">
-  <button id="btn-s" onclick="go()">🎤 &nbsp; START SPEAKING</button>
-  <button id="btn-x" onclick="manual()">⏹ &nbsp; STOP SPEAKING</button>
-  <div id="bars">
-    <div class="b" id="b0"></div><div class="b" id="b1"></div><div class="b" id="b2"></div>
-    <div class="b" id="b3"></div><div class="b" id="b4"></div><div class="b" id="b5"></div>
-    <div class="b" id="b6"></div><div class="b" id="b7"></div><div class="b" id="b8"></div>
-    <div class="b" id="b9"></div><div class="b" id="b10"></div><div class="b" id="b11"></div>
-    <div class="b" id="b12"></div><div class="b" id="b13"></div><div class="b" id="b14"></div>
-    <div class="b" id="b15"></div><div class="b" id="b16"></div><div class="b" id="b17"></div>
-    <div class="b" id="b18"></div><div class="b" id="b19"></div>
-  </div>
-  <div id="sw"><div id="sf"></div></div>
-  <div id="status">Press the button and speak in any language</div>
-</div>
+    spk_lang_label = st.selectbox(
+        "Speaker language",
+        list(SPEAKER_LANGS.keys()),
+        index=0,
+        label_visibility="collapsed",
+        key="spk_lang_sel"
+    )
+    spk_lang_code = SPEAKER_LANGS[spk_lang_label]
 
-<script>
-const SIL_RMS=.013, SIL_SECS=4, SR=16000;
-let mr,stream,ctx,an,raf,chunks=[],silT=null,rec=false;
-const bars=Array.from({length:20},(_,i)=>document.getElementById('b'+i));
-const BS=document.getElementById('btn-s'),BX=document.getElementById('btn-x');
-const ST=document.getElementById('status'),SW=document.getElementById('sw');
-const SF=document.getElementById('sf'),BAR=document.getElementById('bars');
+    # ── Native recorder (the ONLY recorder — JS postMessage doesn't work in Streamlit) ─
+    components.html(PALETTE + """
+<style>
+body{background:transparent;padding:6px 0 2px;}
+.lbl{font-size:11px;color:#3a3a3a;letter-spacing:.14em;text-transform:uppercase;
+  font-family:'JetBrains Mono',monospace;margin-bottom:4px;}
+</style>
+<div class="lbl">🎙️ &nbsp; Tap the mic to start · tap again to stop &amp; transcribe</div>
+""", height=32, scrolling=False)
 
-function msg(t,c='#555'){ST.style.color=c;ST.innerHTML=t;}
+    rec = st.audio_input("Record", key="mic_fb", label_visibility="collapsed")
 
-async function go(){
-  try{stream=await navigator.mediaDevices.getUserMedia(
-    {audio:{sampleRate:SR,channelCount:1,echoCancellation:true,noiseSuppression:true}});}
-  catch{msg('❌ Mic blocked — allow microphone access in your browser','#ff3348');return;}
-  ctx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:SR});
-  an=ctx.createAnalyser();an.fftSize=512;
-  ctx.createMediaStreamSource(stream).connect(an);
-  mr=new MediaRecorder(stream);chunks=[];
-  mr.ondataavailable=e=>{if(e.data.size>0)chunks.push(e.data);};
-  mr.onstop=send;mr.start(100);
-  rec=true;silT=null;
-  BS.style.display='none';BX.style.display='flex';
-  BAR.style.display='flex';SW.style.display='block';SF.style.width='0%';
-  msg('🔴 Recording — speak now','#ff3348');tick();
-}
-
-function tick(){
-  if(!rec)return;
-  const d=new Uint8Array(an.frequencyBinCount);
-  an.getByteTimeDomainData(d);
-  let s=0;for(const v of d){const x=(v-128)/128;s+=x*x;}
-  const rms=Math.sqrt(s/d.length);
-  bars.forEach((b,i)=>{
-    const w=Math.abs(Math.sin(i*.55+Date.now()*.007));
-    b.style.height=Math.max(3,Math.min(38,rms*700*w))+'px';
-  });
-  const now=performance.now();
-  if(rms<SIL_RMS){
-    if(!silT)silT=now;
-    const el=(now-silT)/1000,pct=Math.min(100,el/SIL_SECS*100);
-    SF.style.width=pct+'%';
-    SF.style.background=pct>75
-      ?'linear-gradient(90deg,#ce1126,#900)'
-      :'linear-gradient(90deg,#00c65e,#007a3d)';
-    if(el>=SIL_SECS){msg('⚡ Processing…','#f59e0b');stop();return;}
-    if(el>.8)msg(`🤫 Silence ${el.toFixed(1)}s / ${SIL_SECS}s — auto-stopping soon…`,'#f59e0b');
-  }else{
-    silT=null;SF.style.width='0%';if(rec)msg('🔴 Recording — speak now','#ff3348');
-  }
-  raf=requestAnimationFrame(tick);
-}
-function manual(){msg('⚡ Processing…','#f59e0b');stop();}
-function stop(){
-  if(!rec)return;rec=false;cancelAnimationFrame(raf);
-  if(mr&&mr.state!=='inactive')mr.stop();
-  stream.getTracks().forEach(t=>t.stop());ctx.close();
-  BX.style.display='none';BS.style.display='flex';
-  BAR.style.display='none';SW.style.display='none';
-  bars.forEach(b=>b.style.height='3px');
-}
-async function send(){
-  const blob=new Blob(chunks,{type:'audio/webm'});
-  const ab=await blob.arrayBuffer();
-  const tc=new OfflineAudioContext(1,SR*60,SR);
-  let buf;
-  try{buf=await tc.decodeAudioData(ab);}
-  catch{msg('❌ Audio decode failed — try again','#ff3348');return;}
-  const pcm=buf.getChannelData(0),wav=toWav(pcm,buf.sampleRate);
-  const b64=btoa(String.fromCharCode(...new Uint8Array(wav)));
-  window.parent.postMessage({type:'lt_wav',b64},'*');
-  msg('✅ Sent! Press START SPEAKING for the next sentence.','#00c65e');
-}
-function toWav(p,sr){
-  const buf=new ArrayBuffer(44+p.length*2),v=new DataView(buf);
-  const w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
-  w(0,'RIFF');v.setUint32(4,36+p.length*2,true);w(8,'WAVE');w(12,'fmt ');
-  v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
-  v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);
-  v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');
-  v.setUint32(40,p.length*2,true);
-  let o=44;for(const s of p){const x=Math.max(-1,Math.min(1,s));
-    v.setInt16(o,x<0?x*0x8000:x*0x7FFF,true);o+=2;}
-  return buf;
-}
-</script>
-""", height=210, scrolling=False)
-
-    # ── Fallback native recorder ──────────────────────────────────────────────
-    components.html("""<p style='font-size:12px;color:#2a2a2a;text-align:center;
-      margin:10px 0 2px;font-family:monospace;letter-spacing:.06em;
-      background:transparent;'>
-      — OR USE THE NATIVE RECORDER BELOW —</p>""", height=28, scrolling=False)
-
-    rec = st.audio_input("🎙️ Click mic · speak · click stop — auto-transcribes",
-                         key="mic_fb", label_visibility="collapsed")
     if rec:
         b = rec.read(); h = hash(b)
         if h != st.session_state.last_hash:
             st.session_state.last_hash = h
-            with st.spinner("🧠 Transcribing — detecting language…"):
-                txt, lang = transcribe(b)
+            with st.spinner(f"🧠 Transcribing in {spk_lang_label}…"):
+                txt, lang = transcribe(b, spk_lang_code)
             if txt:
                 db_save(txt, lang)
-                st.session_state.last_txt = txt
+                st.session_state.last_txt  = txt
                 st.session_state.last_lang = lang
                 st.cache_data.clear()
                 st.rerun()
             else:
-                st.warning("No speech detected — try speaking louder or closer.")
+                st.warning("⚠️ No speech detected — try speaking louder or closer to the mic.")
 
-    # ── History ───────────────────────────────────────────────────────────────
+    # ── Session status + Clear ────────────────────────────────────────────────
     n = db_count(); rows = db_all(60)
-    ch1, ch2 = st.columns([4,1])
+    ch1, ch2 = st.columns([4, 1])
     with ch1:
         components.html(f"""<style>
           @keyframes dp{{0%,100%{{opacity:1;transform:scale(1);}}50%{{opacity:.3;transform:scale(.75);}}}}
-          body{{margin:0;padding:0;background:transparent;}}
+          body{{margin:0;padding:4px 0;background:transparent;}}
           </style>
           <div style='display:flex;align-items:center;gap:10px;
-          padding:11px 16px;background:#101010;border:1px solid #222;
+          padding:10px 16px;background:#101010;border:1px solid #222;
           border-radius:10px;font-size:13px;font-family:monospace;'>
           <span style='width:9px;height:9px;border-radius:50%;background:#00c65e;
           box-shadow:0 0 0 4px rgba(0,198,94,.18);display:inline-block;
           animation:dp 1.4s infinite;'></span>
-          <span style='color:#f2ede3;'>Session: <b>{n}</b> segment(s) — newest first</span>
+          <span style='color:#f2ede3;'>Session: <b>{n}</b> segment(s) &nbsp;·&nbsp;
+          Speaking in <b>{spk_lang_code.upper()}</b></span>
           </div>""", height=50, scrolling=False)
     with ch2:
         if st.button("🗑️ Clear", use_container_width=True, key="cl"):
             db_clear(); st.cache_data.clear()
-            st.session_state.last_txt=""
+            st.session_state.last_txt = ""
             st.rerun()
 
+    # ── Broadcast history ─────────────────────────────────────────────────────
     if not rows:
-        components.html(PALETTE+"""<style>body{background:transparent;padding:20px;
-          text-align:center;color:#222;font-family:'Cairo',sans-serif;}</style>
+        components.html(PALETTE + """<style>body{background:transparent;padding:20px;
+          text-align:center;color:#2a2a2a;font-family:'Cairo',sans-serif;}</style>
           <div style='font-size:48px;margin-bottom:12px'>🎙️</div>
-          <div style='font-size:15px'>Nothing broadcast yet — press START SPEAKING above</div>
+          <div style='font-size:15px;color:#3a3a3a;'>
+          Nothing broadcast yet — tap the mic above and speak</div>
           """, height=120)
     else:
-        # Build all history cards in one components.html for performance
         cards_html = ""
-        for i,(txt,lang,ts) in enumerate(rows):
-            is_new = (i==0)
+        for i, (txt, lang, ts) in enumerate(rows):
+            is_new  = (i == 0)
             border  = "border-left:3px solid #fd6b4b;" if is_new else ""
             bg      = "background:linear-gradient(135deg,rgba(253,107,75,.06),#161616 55%);" if is_new else ""
             anim    = "animation:slid .4s ease;" if is_new else ""
@@ -528,7 +420,7 @@ body{{background:transparent;padding:4px 0 20px;}}
 .txt{{font-size:18px;font-weight:600;color:#f2ede3;line-height:1.6;direction:auto;}}
 </style>
 {cards_html}
-""", height=min(90 + len(rows)*100, 2400), scrolling=True)
+""", height=min(90 + len(rows) * 100, 2400), scrolling=True)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -558,31 +450,33 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:4px;z-index:9
   <div class="f3"></div><div class="f4"></div></div>
 """, height=170, scrolling=False)
 
-    if st.button("← Back to Home", key="aud_home"):
-        st.session_state.page="home"
-        st.query_params["page"]="home"
-        st.rerun()
+    _, cback = st.columns([4, 1])
+    with cback:
+        if st.button("← Home", use_container_width=True, key="aud_home"):
+            st.session_state.page = "home"
+            st.query_params["page"] = "home"
+            st.rerun()
 
     # Controls
-    cl, cs, cr = st.columns([3,1,1])
+    cl, cs, cr = st.columns([3, 1, 1])
     with cl:
-        lc = st.selectbox("Language", list(LANGS.keys()), index=0,
+        lc = st.selectbox("Language", list(AUDIENCE_LANGS.keys()), index=0,
                           label_visibility="collapsed")
-        tgt = LANGS[lc]
+        tgt = AUDIENCE_LANGS[lc]
     with cs:
-        fpx = st.select_slider("Size",[20,28,36,44,56,68],value=44,
-                               format_func=lambda x:f"{x}px")
+        fpx = st.select_slider("Size", [20, 28, 36, 44, 56, 68], value=44,
+                               format_func=lambda x: f"{x}px")
     with cr:
-        rate = st.select_slider("Refresh",[2,3,5,8],value=3,
-                                format_func=lambda x:f"{x}s")
+        rate = st.select_slider("Refresh", [2, 3, 5, 8], value=3,
+                                format_func=lambda x: f"{x}s")
 
     n = db_count()
     components.html(f"""<style>
       @keyframes dp{{0%,100%{{opacity:1;transform:scale(1);}}50%{{opacity:.3;transform:scale(.75);}}}}
-      body{{margin:0;padding:0;background:transparent;}}
+      body{{margin:0;padding:4px 0;background:transparent;}}
       </style>
       <div style='display:flex;align-items:center;gap:10px;
-      padding:11px 16px;background:#101010;border:1px solid #222;
+      padding:10px 16px;background:#101010;border:1px solid #222;
       border-radius:10px;font-size:13px;font-family:monospace;'>
       <span style='width:9px;height:9px;border-radius:50%;background:#00c65e;
       box-shadow:0 0 0 4px rgba(0,198,94,.18);display:inline-block;
@@ -594,19 +488,19 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:4px;z-index:9
     rows = db_all(30)
 
     if not rows:
-        components.html(PALETTE+"""<style>body{background:transparent;padding:40px 20px;
+        components.html(PALETTE + """<style>body{background:transparent;padding:40px 20px;
           text-align:center;color:#222;font-family:'Cairo',sans-serif;}</style>
           <div style='font-size:56px;margin-bottom:14px'>⏳</div>
-          <div style='font-size:18px'>Waiting for the speaker to start…</div>
+          <div style='font-size:18px;color:#2a2a2a;'>Waiting for the speaker to start…</div>
           <div style='font-size:13px;color:#1e1e1e;margin-top:8px;'>
           Open the Speaker tab in another browser window or device</div>""", height=200)
     else:
         # ── Latest segment — BIG ──────────────────────────────────────────────
         ltxt, llang, lts = rows[0]
         ltranslated = tr(ltxt, tgt, llang)
-        tb = tgt.split("-")[0].lower()
-        sb = llang.split("-")[0].lower() if llang else "auto"
-        show_orig_l = (sb!=tb) and (ltxt!=ltranslated)
+        tb  = tgt.split("-")[0].lower()
+        sb  = llang.split("-")[0].lower() if llang else "auto"
+        show_orig_l = (sb != tb) and (ltxt != ltranslated)
         orig_l = f'<div class="so">{llang.upper()} · {ltxt}</div>' if show_orig_l else ""
 
         components.html(PALETTE + f"""
@@ -634,7 +528,7 @@ body{{background:transparent;padding:4px 0;}}
   <div class="st">{ltranslated}</div>
   <div class="sm">🕐 {lts} &nbsp;·&nbsp; {llang.upper()} → {tgt.upper()}</div>
 </div>
-""", height=max(260, fpx*3 + 120), scrolling=False)
+""", height=max(260, fpx * 3 + 120), scrolling=False)
 
         # Action buttons
         components.html(PALETTE + f"""
@@ -647,8 +541,6 @@ body{{background:transparent;padding:4px 0 8px;}}
 .btn:hover{{background:#1e1e1e;color:#f2ede3;border-color:#333;}}
 #cm{{color:#00c65e;font-size:12px;margin-left:4px;opacity:0;
   transition:opacity .3s;align-self:center;}}
-
-/* fullscreen */
 #fs{{display:none;position:fixed;inset:0;background:#000;z-index:99999;
   align-items:center;justify-content:center;cursor:pointer;
   flex-direction:column;text-align:center;padding:40px;}}
@@ -692,8 +584,9 @@ function closefs(){{document.getElementById('fs').style.display='none';}}
             hist_html = ""
             for seg_txt, seg_lang, seg_ts in older:
                 seg_tr = tr(seg_txt, tgt, seg_lang)
-                sb2 = seg_lang.split("-")[0].lower() if seg_lang else "auto"
-                so = f'<div class="ao">{seg_lang.upper()} · {seg_txt}</div>' if (sb2!=tb and seg_txt!=seg_tr) else ""
+                sb2    = seg_lang.split("-")[0].lower() if seg_lang else "auto"
+                so     = f'<div class="ao">{seg_lang.upper()} · {seg_txt}</div>' \
+                         if (sb2 != tb and seg_txt != seg_tr) else ""
                 hist_html += f"""
 <div class="ac">
   {so}
@@ -712,7 +605,7 @@ body{{background:transparent;padding:2px 0 20px;}}
 .ats{{font-size:11px;color:#1e1e1e;font-family:'JetBrains Mono',monospace;margin-top:5px;}}
 </style>
 {hist_html}
-""", height=min(60 + len(older)*100, 2000), scrolling=True)
+""", height=min(60 + len(older) * 100, 2000), scrolling=True)
 
     # Auto-refresh
     time.sleep(rate)
