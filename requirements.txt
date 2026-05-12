@@ -3,3 +3,6 @@ openai
 deep-translator
 SpeechRecognition
 pydub
+faster-whisper
+sounddevice
+numpy
