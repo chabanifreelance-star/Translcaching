@@ -551,28 +551,39 @@ UI_LANG_OPTIONS = [
     ("🇪🇸 ES", "es"),
 ]
 
-def render_lang_switcher():
+def render_lang_toggle():
+    """Single toggle button that cycles through UI languages. Home page only."""
+    codes = [code for _, code in UI_LANG_OPTIONS]
+    labels = [label for label, _ in UI_LANG_OPTIONS]
+    cur = st.session_state.ui_lang
+    cur_idx = codes.index(cur) if cur in codes else 0
+    cur_label = labels[cur_idx]
+    next_idx = (cur_idx + 1) % len(codes)
+    next_label = labels[next_idx]
+
     st.markdown("""<div style='height:6px'></div>""", unsafe_allow_html=True)
-    cols = st.columns(len(UI_LANG_OPTIONS))
-    for i, (label, code) in enumerate(UI_LANG_OPTIONS):
-        with cols[i]:
-            active = st.session_state.ui_lang == code
-            if active:
-                st.markdown(f"""<style>
-div[data-testid="column"]:nth-child({i+1}) .stButton>button{{
+    st.markdown(f"""<style>
+div[data-testid="stButton"][key="lang_toggle"] .stButton>button,
+.lang-toggle-btn .stButton>button{{
   border-color:#007a3d!important;
-  background:rgba(0,122,61,.18)!important;
+  background:rgba(0,122,61,.13)!important;
   color:#00c65e!important;
-}}</style>""", unsafe_allow_html=True)
-            if st.button(label, key=f"uilang_{code}_{st.session_state.page}", use_container_width=True):
-                st.session_state.ui_lang = code
-                st.rerun()
+  font-size:12px!important;
+  letter-spacing:.12em!important;
+}}
+</style>""", unsafe_allow_html=True)
+
+    col_l, col_btn, col_r = st.columns([3, 2, 3])
+    with col_btn:
+        if st.button(f"{cur_label}  →  {next_label}", key="lang_toggle", use_container_width=True):
+            st.session_state.ui_lang = codes[next_idx]
+            st.rerun()
     st.markdown("""<div class='pal-divider'></div>""", unsafe_allow_html=True)
 
 
 if st.session_state.page == "home":
 
-    render_lang_switcher()
+    render_lang_toggle()
 
     rtl = is_rtl_ui()
     ui_dir = "rtl" if rtl else "ltr"
@@ -646,8 +657,6 @@ elif st.session_state.page == "speaker_setup":
     rtl = is_rtl_ui()
     ui_dir = "rtl" if rtl else "ltr"
 
-    render_lang_switcher()
-
     components.html(PALETTE + f"""
 <style>
 body{{padding:16px 16px 6px;background:transparent;direction:{ui_dir};}}
@@ -719,8 +728,6 @@ elif st.session_state.page == "audience_join":
 
     rtl = is_rtl_ui()
     ui_dir = "rtl" if rtl else "ltr"
-
-    render_lang_switcher()
 
     components.html(PALETTE + f"""
 <style>
@@ -829,8 +836,6 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
         st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
         if st.button(T("home_btn"), key="spk_home", use_container_width=True):
             go("home", room_code=None)
-
-    render_lang_switcher()
 
     spk_label = st.selectbox(
         T("speaking_lang"),
@@ -977,8 +982,6 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
         st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
         if st.button(T("home_btn"), key="aud_home", use_container_width=True):
             go("home", room_code=None)
-
-    render_lang_switcher()
 
     c1, c2 = st.columns([3, 1], gap="small")
     with c1:
