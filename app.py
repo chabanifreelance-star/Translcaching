@@ -1,5 +1,5 @@
 """
-LiveTranslate — v9  (Perfect Arabic RTL · XSS-safe · Security hardened)
+LiveTranslate — v10  (Quick lang buttons · Duration check · History fix · RTL perfect)
 ================================================================================
 requirements.txt:
   streamlit>=1.37
@@ -693,17 +693,39 @@ body{{padding:20px 16px 6px;background:transparent;}}
         if h != st.session_state.last_hash:
             st.session_state.last_hash = h
             lang_code = st.session_state.spk_lang
-            with st.spinner("Transcribing…"):
-                txt, lang = transcribe(audio_bytes, lang_code)
-            if txt:
-                if db_save(room, txt, lang):
-                    st.session_state.last_txt  = txt
-                    st.session_state.last_lang = lang
-                    st.rerun()
+
+            # ── Duration check (WAV header: sample_rate at offset 24, num_samples = (size-44)/channels/bits*8) ──
+            _too_long = False
+            try:
+                import struct
+                if len(audio_bytes) > 44 and audio_bytes[:4] == b'RIFF':
+                    _sr   = struct.unpack_from('<I', audio_bytes, 24)[0]
+                    _nchan = struct.unpack_from('<H', audio_bytes, 22)[0]
+                    _bps  = struct.unpack_from('<H', audio_bytes, 34)[0]
+                    _data_size = len(audio_bytes) - 44
+                    _duration = _data_size / (_sr * _nchan * (_bps // 8)) if _sr and _nchan and _bps else 0
+                    if _duration > 60:
+                        _too_long = True
+                        st.warning(
+                            f"⚠️ Recording is too long ({int(_duration)}s). "
+                            "Please keep each recording under 60 seconds for reliable transcription. "
+                            "Split your speech into shorter segments."
+                        )
+            except Exception:
+                pass
+
+            if not _too_long:
+                with st.spinner("Transcribing…"):
+                    txt, lang = transcribe(audio_bytes, lang_code)
+                if txt:
+                    if db_save(room, txt, lang):
+                        st.session_state.last_txt  = txt
+                        st.session_state.last_lang = lang
+                        st.rerun()
+                    else:
+                        st.error("Save failed — try again.")
                 else:
-                    st.error("Save failed — try again.")
-            else:
-                st.warning("⚠️ No speech detected — try again.")
+                    st.warning("⚠️ No speech detected — try again.")
 
     n = db_count(room)
     s1, s2 = st.columns([4, 1], gap="small")
@@ -816,12 +838,44 @@ body{{padding:20px 16px 6px;background:transparent;}}
         if st.button("← Home", key="aud_home", use_container_width=True):
             go("home", room_code=None)
 
+    # ── Quick language buttons ─────────────────────────────────────────────
+    q1, q2, q3, q4 = st.columns(4, gap="small")
+    with q1:
+        if st.button("🇬🇧 EN", key="ql_en", use_container_width=True):
+            st.session_state.aud_lang = "en"; st.rerun()
+    with q2:
+        if st.button("🇫🇷 FR", key="ql_fr", use_container_width=True):
+            st.session_state.aud_lang = "fr"; st.rerun()
+    with q3:
+        if st.button("🇸🇦 AR", key="ql_ar", use_container_width=True):
+            st.session_state.aud_lang = "ar"; st.rerun()
+    with q4:
+        if st.button("🇹🇷 TR", key="ql_tr", use_container_width=True):
+            st.session_state.aud_lang = "tr"; st.rerun()
+
+    # Active lang indicator bar
+    _ql_labels = {"en": "🇬🇧 EN", "fr": "🇫🇷 FR", "ar": "🇸🇦 AR", "tr": "🇹🇷 TR"}
+    _ql_active_label = _ql_labels.get(st.session_state.aud_lang, "")
+    if _ql_active_label:
+        components.html(f"""
+<style>body{{margin:0;padding:0 0 2px;background:transparent;}}</style>
+<div style='display:flex;gap:6px;padding:3px 0;'>
+  {"".join(
+    f'<div style="flex:1;height:2px;border-radius:1px;background:{"#00c65e" if lbl==_ql_active_label else "#1a1a1a"};"></div>'
+    for lbl in ["🇬🇧 EN","🇫🇷 FR","🇸🇦 AR","🇹🇷 TR"]
+  )}
+</div>""", height=12, scrolling=False)
+
+    st.markdown("<div style='height:2px'></div>", unsafe_allow_html=True)
+
     c1, c2 = st.columns([3, 1], gap="small")
     with c1:
+        _aud_vals = list(AUDIENCE_LANGS.values())
+        _aud_idx = _aud_vals.index(st.session_state.aud_lang) if st.session_state.aud_lang in _aud_vals else 0
         lc_sel = st.selectbox(
             "Language",
             list(AUDIENCE_LANGS.keys()),
-            index=list(AUDIENCE_LANGS.values()).index(st.session_state.aud_lang),
+            index=_aud_idx,
             label_visibility="collapsed",
             key="aud_lang_sel",
         )
@@ -1027,8 +1081,8 @@ function closefs(){{document.getElementById('fs').style.display='none';}}
         older = rows[1:]
         if older:
             st.markdown("""
-<div style='margin:3px 0;font-size:10px;color:#1a1a1a;
-  font-family:monospace;letter-spacing:.1em;'>─── PREVIOUS ───</div>
+<div style='margin:3px 0 5px;font-size:10px;color:#333;
+  font-family:monospace;letter-spacing:.1em;text-align:center;'>─── PREVIOUS ───</div>
 """, unsafe_allow_html=True)
 
             h_html = ""
@@ -1066,12 +1120,12 @@ function closefs(){{document.getElementById('fs').style.display='none';}}
             components.html(PALETTE + f"""
 <style>
 body{{background:transparent;padding:2px 0 20px;}}
-.ac{{background:#111;border:1px solid #1a1a1a;border-radius:10px;
-  padding:11px 13px;margin:4px 0;opacity:.5;transition:opacity .2s;}}
-.ac:hover{{opacity:.8;}}
-.ao{{font-size:11px;color:#222;font-style:italic;margin-bottom:3px;line-height:1.5;}}
-.at{{font-size:15px;font-weight:600;color:#666;line-height:1.65;}}
-.ats{{font-size:10px;color:#1a1a1a;font-family:'JetBrains Mono',monospace;margin-top:3px;}}
+.ac{{background:#111;border:1px solid #202020;border-radius:10px;
+  padding:11px 13px;margin:4px 0;opacity:.75;transition:opacity .2s;}}
+.ac:hover{{opacity:1;border-color:#2e2e2e;}}
+.ao{{font-size:11px;color:#555;font-style:italic;margin-bottom:3px;line-height:1.5;}}
+.at{{font-size:15px;font-weight:600;color:#f2ede3;line-height:1.65;}}
+.ats{{font-size:10px;color:#333;font-family:'JetBrains Mono',monospace;margin-top:3px;}}
 </style>
 {h_html}
 """, height=min(50 + len(older) * 84, 1800), scrolling=True)
