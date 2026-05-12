@@ -395,6 +395,43 @@ AUDIENCE_LANGS = {
 # ═══════════════════════════════════════════════════════════════════════════════
 # SESSION STATE
 # ═══════════════════════════════════════════════════════════════════════════════
+
+# ──────────────────────────────────────────────────────────────────────────────
+# ADD THIS BLOCK AFTER DEFAULTS = { ... }
+# ──────────────────────────────────────────────────────────────────────────────
+
+UI_TEXT = {
+    "en": {
+        "tagline": "Real-time multilingual subtitles 🇵🇸",
+        "speaker": "🎤  SPEAKER",
+        "audience": "👥  AUDIENCE",
+        "footer": "faster-whisper · deep-translator · 100% free 🇵🇸",
+        "ui_lang": "🌍 UI Language",
+    },
+    "fr": {
+        "tagline": "Sous-titres multilingues en temps réel 🇵🇸",
+        "speaker": "🎤  ORATEUR",
+        "audience": "👥  AUDIENCE",
+        "footer": "faster-whisper · deep-translator · 100% gratuit 🇵🇸",
+        "ui_lang": "🌍 Langue UI",
+    },
+    "tr": {
+        "tagline": "Gerçek zamanlı çok dilli altyazılar 🇵🇸",
+        "speaker": "🎤  KONUŞMACI",
+        "audience": "👥  İZLEYİCİ",
+        "footer": "faster-whisper · deep-translator · %100 ücretsiz 🇵🇸",
+        "ui_lang": "🌍 Arayüz Dili",
+    },
+    "ar": {
+        "tagline": "ترجمة فورية متعددة اللغات 🇵🇸",
+        "speaker": "🎤  المتحدث",
+        "audience": "👥  الجمهور",
+        "footer": "faster-whisper · deep-translator · مجاني 100٪ 🇵🇸",
+        "ui_lang": "🌍 لغة الواجهة",
+    }
+}
+
+# ADD ui_lang TO DEFAULTS
 DEFAULTS = {
     "page":       "home",
     "room_code":  None,
@@ -406,7 +443,10 @@ DEFAULTS = {
     "aud_fpx":    28,
     "aud_rate":   3,
     "join_error": "",
+    "ui_lang":    "en",   # <-- ADD THIS
 }
+
+
 for k, v in DEFAULTS.items():
     if k not in st.session_state:
         st.session_state[k] = v
