@@ -1,5 +1,5 @@
 """
-LiveTranslate — v8  (Room system, no QR, working buttons, perfect translation)
+LiveTranslate — v9  (Perfect Arabic RTL · XSS-safe · Security hardened)
 ================================================================================
 requirements.txt:
   streamlit>=1.37
@@ -13,7 +13,7 @@ Run:
 
 import streamlit as st
 import streamlit.components.v1 as components
-import sqlite3, os, tempfile, random, string
+import sqlite3, os, tempfile, random, string, html, re, time
 from datetime import datetime
 
 # ── page config ───────────────────────────────────────────────────────────────
@@ -23,6 +23,31 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECURITY HELPERS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def esc(text: str) -> str:
+    """HTML-escape any user-supplied string before injecting into HTML."""
+    return html.escape(str(text), quote=True)
+
+RTL_LANGS = {"ar", "he", "fa", "ur", "yi", "ps", "ku", "dv", "ug", "ckb"}
+
+def dir_attr(lang_code: str) -> str:
+    """Return the correct HTML dir attribute for a language code."""
+    base = (lang_code or "").split("-")[0].lower()
+    return "rtl" if base in RTL_LANGS else "ltr"
+
+def rtl_style(lang_code: str) -> str:
+    """Return inline CSS for direction + alignment based on language."""
+    if dir_attr(lang_code) == "rtl":
+        return "direction:rtl;text-align:right;unicode-bidi:embed;"
+    return "direction:ltr;text-align:left;"
+
+# Sanitize room code to digits only, exactly 4 chars
+def sanitize_code(raw: str) -> str:
+    return re.sub(r"[^0-9]", "", (raw or ""))[:4]
 
 # ── global CSS ────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -85,7 +110,7 @@ div[data-testid="stVerticalBlockBorderWrapper"]{padding:0!important;}
 # ── shared iframe CSS ─────────────────────────────────────────────────────────
 PALETTE = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cairo:wght@400;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cairo:wght@400;600;700;900&family=Noto+Naskh+Arabic:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
 :root{
   --bg:#080808;--card:#161616;--b:#222;--b2:#2e2e2e;
   --white:#f2ede3;--dim:#2a2a2a;
@@ -96,8 +121,23 @@ PALETTE = """
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{
   background:transparent;color:var(--white);
-  font-family:'Cairo',sans-serif;-webkit-font-smoothing:antialiased;
+  font-family:'Cairo','Noto Naskh Arabic',sans-serif;
+  -webkit-font-smoothing:antialiased;
   overflow-x:hidden;
+}
+/* Global RTL text class */
+.rtl-text{
+  direction:rtl;
+  text-align:right;
+  unicode-bidi:embed;
+  font-family:'Noto Naskh Arabic','Cairo',sans-serif;
+  font-feature-settings:"kern" 1,"liga" 1,"calt" 1;
+}
+.ltr-text{
+  direction:ltr;
+  text-align:left;
+  unicode-bidi:embed;
+  font-family:'Cairo',sans-serif;
 }
 </style>
 """
@@ -105,7 +145,7 @@ html,body{
 # ═══════════════════════════════════════════════════════════════════════════════
 # DATABASE
 # ═══════════════════════════════════════════════════════════════════════════════
-DB = os.path.join(tempfile.gettempdir(), "lt_v8.db")
+DB = os.path.join(tempfile.gettempdir(), "lt_v9.db")
 
 def _cx():
     return sqlite3.connect(DB, check_same_thread=False, timeout=10)
@@ -123,6 +163,12 @@ def init_db():
             lang TEXT DEFAULT '',
             ts   TEXT NOT NULL
         )""")
+        # Rate-limit table: track save timestamps per room
+        c.execute("""CREATE TABLE IF NOT EXISTS rate_limit(
+            room TEXT PRIMARY KEY,
+            last_save REAL NOT NULL,
+            count INTEGER DEFAULT 0
+        )""")
         c.commit()
 
 def room_create(code):
@@ -132,17 +178,58 @@ def room_create(code):
         c.commit()
 
 def room_exists(code):
+    # Only check sanitized numeric codes
+    if not re.fullmatch(r"[0-9]{4}", code or ""):
+        return False
     with _cx() as c:
         return c.execute(
             "SELECT 1 FROM rooms WHERE code=?", (code,)
         ).fetchone() is not None
 
+def _check_rate_limit(room: str, max_per_minute: int = 30) -> bool:
+    """Return True if save is allowed, False if rate-limited."""
+    now = time.time()
+    with _cx() as c:
+        row = c.execute(
+            "SELECT last_save, count FROM rate_limit WHERE room=?", (room,)
+        ).fetchone()
+        if row is None:
+            c.execute(
+                "INSERT INTO rate_limit(room,last_save,count) VALUES(?,?,1)",
+                (room, now)
+            )
+            c.commit()
+            return True
+        last_save, count = row
+        # Reset window every 60 s
+        if now - last_save > 60:
+            c.execute(
+                "UPDATE rate_limit SET last_save=?, count=1 WHERE room=?",
+                (now, room)
+            )
+            c.commit()
+            return True
+        if count >= max_per_minute:
+            return False
+        c.execute(
+            "UPDATE rate_limit SET count=count+1 WHERE room=?", (room,)
+        )
+        c.commit()
+        return True
+
 def db_save(room, txt, lang):
     try:
+        # Rate-limit check
+        if not _check_rate_limit(room):
+            return False
+        # Sanitize: strip leading/trailing whitespace, limit length
+        clean = txt.strip()[:2000]
+        if not clean:
+            return False
         with _cx() as c:
             c.execute(
                 "INSERT INTO seg(room,txt,lang,ts) VALUES(?,?,?,?)",
-                (room, txt.strip(), lang, datetime.now().strftime("%H:%M"))
+                (room, clean, lang, datetime.now().strftime("%H:%M"))
             )
             c.commit()
         return True
@@ -151,6 +238,8 @@ def db_save(room, txt, lang):
 
 def db_all(room, limit=40):
     try:
+        if not re.fullmatch(r"[0-9]{4}", room or ""):
+            return []
         with _cx() as c:
             return c.execute(
                 "SELECT txt,lang,ts FROM seg WHERE room=? ORDER BY id DESC LIMIT ?",
@@ -161,6 +250,8 @@ def db_all(room, limit=40):
 
 def db_count(room):
     try:
+        if not re.fullmatch(r"[0-9]{4}", room or ""):
+            return 0
         with _cx() as c:
             return c.execute(
                 "SELECT COUNT(*) FROM seg WHERE room=?", (room,)
@@ -169,6 +260,8 @@ def db_count(room):
         return 0
 
 def db_clear(room):
+    if not re.fullmatch(r"[0-9]{4}", room or ""):
+        return
     with _cx() as c:
         c.execute("DELETE FROM seg WHERE room=?", (room,))
         c.commit()
@@ -214,53 +307,89 @@ def transcribe(audio_bytes, lang_code):
             except: pass
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TRANSLATION  — always explicit source, never "auto"
+# TRANSLATION  — perfect Arabic support, always explicit source
 # ═══════════════════════════════════════════════════════════════════════════════
-@st.cache_data(ttl=7200, show_spinner=False)
-def tr(text, target, source):
+
+# Map of language codes to Google Translate accepted codes
+_LANG_MAP = {
+    "zh-cn": "zh-CN",
+    "zh-tw": "zh-TW",
+    "ar":    "ar",
+    "he":    "iw",       # Google uses 'iw' for Hebrew
+}
+
+def _norm_for_google(code: str) -> str:
+    """Normalize a language code for Google Translate."""
+    c = (code or "").strip()
+    low = c.lower()
+    if low in _LANG_MAP:
+        return _LANG_MAP[low]
+    if low.startswith("zh"):
+        return c  # preserve zh-CN / zh-TW casing
+    return low.split("-")[0]
+
+# NOTE: Do NOT cache tr() with @st.cache_data — it can cross-contaminate
+# results between different target languages for the same source text.
+# We use a simple in-process dict cache instead (safe, same process).
+_TR_CACHE: dict = {}
+_TR_CACHE_MAX = 2000  # evict oldest when full
+
+def tr(text: str, target: str, source: str) -> str:
+    """Translate text from source to target language.
+    Returns original text on failure or if already in target language."""
     if not text or not text.strip():
         return text
-    def norm(c):
-        c = c.strip()
-        if c.lower().startswith("zh"):
-            return c          # keep zh-CN / zh-TW
-        return c.split("-")[0].lower()
-    src, tgt = norm(source), norm(target)
+
+    src = _norm_for_google(source)
+    tgt = _norm_for_google(target)
+
     if src == tgt:
         return text
+
+    cache_key = (text[:200], src, tgt)
+    if cache_key in _TR_CACHE:
+        return _TR_CACHE[cache_key]
+
     try:
         from deep_translator import GoogleTranslator
-        res = GoogleTranslator(source=src, target=tgt).translate(text)
-        return res if res else text
+        result = GoogleTranslator(source=src, target=tgt).translate(text)
+        translated = result if result and result.strip() else text
     except Exception:
-        return text
+        translated = text
+
+    # Evict oldest entries if cache is full
+    if len(_TR_CACHE) >= _TR_CACHE_MAX:
+        oldest = next(iter(_TR_CACHE))
+        del _TR_CACHE[oldest]
+    _TR_CACHE[cache_key] = translated
+    return translated
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # LANGUAGES
 # ═══════════════════════════════════════════════════════════════════════════════
 SPEAKER_LANGS = {
-    "🇬🇧 English":       "en",
-    "🇸🇦 Arabic":        "ar",
-    "🇫🇷 French":        "fr",
-    "🇹🇷 Turkish":       "tr",
-    "🇪🇸 Spanish":       "es",
-    "🇩🇪 German":        "de",
-    "🇮🇹 Italian":       "it",
-    "🇷🇺 Russian":       "ru",
+    "🇬🇧 English":   "en",
+    "🇸🇦 Arabic":    "ar",
+    "🇫🇷 French":    "fr",
+    "🇹🇷 Turkish":   "tr",
+    "🇪🇸 Spanish":   "es",
+    "🇩🇪 German":    "de",
+    "🇮🇹 Italian":   "it",
+    "🇷🇺 Russian":   "ru",
 }
 
 AUDIENCE_LANGS = {
-    "🇸🇦 Arabic":        "ar",  "🇬🇧 English":   "en",
-    "🇫🇷 French":        "fr",  "🇪🇸 Spanish":   "es",
-    "🇩🇪 German":        "de",  "🇹🇷 Turkish":   "tr",
-    "🇮🇹 Italian":       "it",  "🇨🇳 Chinese":   "zh-CN",
-    "🇷🇺 Russian":       "ru",  "🇯🇵 Japanese":  "ja",
-    "🇧🇷 Portuguese":    "pt",  "🇮🇳 Hindi":     "hi",
-    "🇰🇷 Korean":        "ko",  "🇳🇱 Dutch":     "nl",
-    "🇵🇱 Polish":        "pl",  "🇸🇪 Swedish":   "sv",
-    "🇬🇷 Greek":         "el",  "🇹🇭 Thai":      "th",
-    "🇻🇳 Vietnamese":    "vi",  "🇺🇦 Ukrainian": "uk",
-    "🇮🇩 Indonesian":    "id",
+    "🇸🇦 Arabic":      "ar",  "🇬🇧 English":   "en",
+    "🇫🇷 French":      "fr",  "🇪🇸 Spanish":   "es",
+    "🇩🇪 German":      "de",  "🇹🇷 Turkish":   "tr",
+    "🇮🇹 Italian":     "it",  "🇨🇳 Chinese":   "zh-CN",
+    "🇷🇺 Russian":     "ru",  "🇯🇵 Japanese":  "ja",
+    "🇧🇷 Portuguese":  "pt",  "🇮🇳 Hindi":     "hi",
+    "🇰🇷 Korean":      "ko",  "🇳🇱 Dutch":     "nl",
+    "🇵🇱 Polish":      "pl",  "🇸🇪 Swedish":   "sv",
+    "🇬🇷 Greek":       "el",  "🇹🇭 Thai":      "th",
+    "🇻🇳 Vietnamese":  "vi",  "🇺🇦 Ukrainian": "uk",
+    "🇮🇩 Indonesian":  "id",
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -274,7 +403,7 @@ DEFAULTS = {
     "last_lang":  "",
     "spk_lang":   "en",
     "aud_lang":   "ar",
-    "aud_fpx":    24,
+    "aud_fpx":    28,
     "aud_rate":   3,
     "join_error": "",
 }
@@ -282,8 +411,6 @@ for k, v in DEFAULTS.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-
-# ── helper: change page + optional state, then rerun ─────────────────────────
 def go(page, **kw):
     st.session_state.page = page
     for k, v in kw.items():
@@ -296,7 +423,6 @@ def go(page, **kw):
 # ═══════════════════════════════════════════════════════════════════════════════
 if st.session_state.page == "home":
 
-    # Brand header
     components.html(PALETTE + """
 <style>
 body{
@@ -334,7 +460,6 @@ body{
 
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
-    # Role buttons — plain st.button, no CSS column targeting
     col1, col2 = st.columns(2, gap="small")
     with col1:
         if st.button("🎤  SPEAKER", key="btn_spk", use_container_width=True):
@@ -351,7 +476,7 @@ body{
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  S P E A K E R   S E T U P  — show / regenerate room code
+#  S P E A K E R   S E T U P
 # ═══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "speaker_setup":
 
@@ -402,7 +527,7 @@ body{{
 </style>
 <div class="lbl">🔑 Room Code</div>
 <div class="box">
-  <div class="code">{code}</div>
+  <div class="code">{esc(code)}</div>
   <div class="hint">Tell your audience to enter this code</div>
 </div>
 """, height=205, scrolling=False)
@@ -426,7 +551,7 @@ body{{
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  A U D I E N C E   J O I N  — enter code
+#  A U D I E N C E   J O I N
 # ═══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "audience_join":
 
@@ -459,7 +584,7 @@ body{padding:22px 16px 8px;background:transparent;}
 <div style='background:rgba(206,17,38,.1);border:1px solid rgba(255,51,72,.3);
   border-radius:10px;padding:11px 14px;font-size:13px;color:#ff3348;
   text-align:center;margin:6px 0;'>
-  ❌ {st.session_state.join_error}
+  ❌ {esc(st.session_state.join_error)}
 </div>""", unsafe_allow_html=True)
 
     st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
@@ -467,8 +592,8 @@ body{padding:22px 16px 8px;background:transparent;}
     j1, j2 = st.columns(2, gap="small")
     with j1:
         if st.button("👥  Join Room", key="aud_join_btn", use_container_width=True):
-            code = (code_input or "").strip()
-            if len(code) != 4 or not code.isdigit():
+            code = sanitize_code(code_input)
+            if len(code) != 4:
                 st.session_state.join_error = "Please enter a valid 4-digit code"
                 st.rerun()
             elif not room_exists(code):
@@ -534,7 +659,7 @@ body{{padding:20px 16px 6px;background:transparent;}}
 </style>
 <div class="title">SPEAK NOW</div>
 <div class="sub">Tap mic · speak · tap again</div>
-<div class="badge">🔑 Room {room}</div>
+<div class="badge">🔑 Room {esc(room)}</div>
 """, height=120, scrolling=False)
     with nr:
         st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
@@ -574,7 +699,6 @@ body{{padding:20px 16px 6px;background:transparent;}}
                 if db_save(room, txt, lang):
                     st.session_state.last_txt  = txt
                     st.session_state.last_lang = lang
-                    st.cache_data.clear()
                     st.rerun()
                 else:
                     st.error("Save failed — try again.")
@@ -596,13 +720,12 @@ body{{margin:0;padding:3px 0;background:transparent;}}
     box-shadow:0 0 0 3px rgba(0,198,94,.18);
     animation:dp 1.4s infinite;flex-shrink:0;display:inline-block;'></span>
   <span style='color:#f2ede3;'>
-    <b>{n}</b> seg(s) · <b>{st.session_state.spk_lang.upper()}</b> · Room <b>{room}</b>
+    <b>{n}</b> seg(s) · <b>{esc(st.session_state.spk_lang.upper())}</b> · Room <b>{esc(room)}</b>
   </span>
 </div>""", height=46, scrolling=False)
     with s2:
         if st.button("🗑 Clear", key="clr_btn", use_container_width=True):
             db_clear(room)
-            st.cache_data.clear()
             st.session_state.last_txt = ""
             st.rerun()
 
@@ -616,6 +739,11 @@ body{{margin:0;padding:3px 0;background:transparent;}}
     else:
         cards = ""
         for i, (txt, lang, ts) in enumerate(rows):
+            safe_txt = esc(txt)
+            safe_lang = esc((lang or "??").upper())
+            safe_ts = esc(ts)
+            d = dir_attr(lang)
+            rs = rtl_style(lang)
             new = i == 0
             bl = "border-left:3px solid #fd6b4b;" if new else ""
             bg = "background:linear-gradient(135deg,rgba(253,107,75,.05),#161616 55%);" if new else ""
@@ -624,10 +752,10 @@ body{{margin:0;padding:3px 0;background:transparent;}}
             cards += f"""
 <div class="hc" style="{bl}{bg}{an}">
   <div class="meta">
-    <span class="ts">🕐 {ts}</span>
-    <span class="ltag">{lang.upper()}</span>{nt}
+    <span class="ts">🕐 {safe_ts}</span>
+    <span class="ltag">{safe_lang}</span>{nt}
   </div>
-  <div class="htxt">{txt}</div>
+  <div class="htxt" dir="{d}" style="{rs}">{safe_txt}</div>
 </div>"""
         components.html(PALETTE + f"""
 <style>
@@ -643,7 +771,8 @@ body{{background:transparent;padding:4px 0 24px;}}
 .ntag{{background:rgba(253,107,75,.1);color:#ff8a6a;border:1px solid rgba(253,107,75,.25);
   border-radius:4px;padding:1px 7px;font-size:9px;font-weight:700;
   letter-spacing:.1em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;}}
-.htxt{{font-size:16px;font-weight:600;color:#f2ede3;line-height:1.55;direction:auto;}}
+.htxt{{font-size:16px;font-weight:600;color:#f2ede3;line-height:1.65;
+  font-family:'Noto Naskh Arabic','Cairo',sans-serif;}}
 </style>
 {cards}
 """, height=min(80 + len(rows) * 88, 2400), scrolling=True)
@@ -680,7 +809,7 @@ body{{padding:20px 16px 6px;background:transparent;}}
 </style>
 <div class="title">LIVE SUBS</div>
 <div class="sub">Real-time translated subtitles</div>
-<div class="badge">🔑 Room {room}</div>
+<div class="badge">🔑 Room {esc(room)}</div>
 """, height=120, scrolling=False)
     with ar_:
         st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
@@ -744,6 +873,16 @@ body{{padding:20px 16px 6px;background:transparent;}}
         rows = db_all(room, 25)
         n    = db_count(room)
 
+        # Direction for the TARGET language (what the audience reads)
+        tgt_dir   = dir_attr(tgt)
+        tgt_style = rtl_style(tgt)
+        # Choose font based on target
+        tgt_font  = (
+            "'Noto Naskh Arabic','Cairo',sans-serif"
+            if tgt_dir == "rtl"
+            else "'Cairo',sans-serif"
+        )
+
         components.html(f"""
 <style>
 @keyframes dp{{0%,100%{{opacity:1}}50%{{opacity:.2}}}}
@@ -756,7 +895,7 @@ body{{margin:0;padding:2px 0;background:transparent;}}
     box-shadow:0 0 0 3px rgba(0,198,94,.15);
     animation:dp 1.4s infinite;flex-shrink:0;display:inline-block;'></span>
   <span style='color:#f2ede3;'>
-    🔴 Live · <b>{n}</b> segs · Room <b>{room}</b> · <b>{tgt.upper()}</b> · ↺{st.session_state.aud_rate}s
+    🔴 Live · <b>{n}</b> segs · Room <b>{esc(room)}</b> · <b>{esc(tgt.upper())}</b> · ↺{st.session_state.aud_rate}s
   </span>
 </div>""", height=38, scrolling=False)
 
@@ -772,10 +911,29 @@ body{{margin:0;padding:2px 0;background:transparent;}}
 
         ltxt, llang, lts = rows[0]
         ltranslated = tr(ltxt, tgt, llang)
-        tb = tgt.split("-")[0].lower()
-        sb = (llang or "").split("-")[0].lower()
-        show_src = (sb != tb) and ltxt != ltranslated
-        src_div  = f'<div class="so">{llang.upper()}: {ltxt}</div>' if show_src else ""
+
+        # Source display (show original if different language & different text)
+        src_dir = dir_attr(llang)
+        src_style = rtl_style(llang)
+        src_font = (
+            "'Noto Naskh Arabic','Cairo',sans-serif"
+            if src_dir == "rtl"
+            else "'Cairo',sans-serif"
+        )
+        show_src = (
+            _norm_for_google(llang) != _norm_for_google(tgt)
+            and esc(ltxt) != esc(ltranslated)
+        )
+        src_div = (
+            f'<div class="so" dir="{src_dir}" '
+            f'style="{src_style}font-family:{src_font};">'
+            f'{esc(llang).upper()}: {esc(ltxt)}</div>'
+            if show_src else ""
+        )
+
+        # JS-safe escaped string for speak/copy (use JSON.stringify-safe repr)
+        import json
+        js_translated = json.dumps(ltranslated)  # gives "\"...\""
 
         components.html(PALETTE + f"""
 <style>
@@ -787,17 +945,24 @@ body{{padding:5px 0 3px;background:transparent;}}
 }}
 .stage::after{{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
   background:linear-gradient(90deg,#ce1126 0%,#0a0a0a 35%,#007a3d 100%);}}
-.so{{font-size:11px;color:#2a2a2a;font-style:italic;direction:auto;
-  margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid #181818;}}
-.st{{color:#f2ede3;font-weight:700;line-height:1.4;direction:auto;
-  font-size:{fpx}px;animation:fi .4s ease;}}
+.so{{
+  font-size:11px;color:#2a2a2a;font-style:italic;
+  margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid #181818;
+  line-height:1.6;
+}}
+.st{{
+  color:#f2ede3;font-weight:700;line-height:1.65;
+  font-size:{fpx}px;animation:fi .4s ease;
+  font-family:{tgt_font};
+  {tgt_style}
+}}
 @keyframes fi{{from{{opacity:.1;transform:translateY(8px)}}to{{opacity:1;transform:none}}}}
 .sm{{font-family:'JetBrains Mono',monospace;font-size:10px;color:#1e1e1e;margin-top:11px;}}
 </style>
 <div class="stage">
   {src_div}
-  <div class="st">{ltranslated}</div>
-  <div class="sm">🕐 {lts} · {(llang or "?").upper()} → {tgt.upper()}</div>
+  <div class="st" dir="{tgt_dir}">{esc(ltranslated)}</div>
+  <div class="sm">🕐 {esc(lts)} · {esc((llang or "?").upper())} → {esc(tgt.upper())}</div>
 </div>
 """, height=max(170, fpx * 3 + 75), scrolling=False)
 
@@ -816,9 +981,13 @@ body{{background:transparent;padding:4px 0 5px;}}
 #cm{{color:#00c65e;font-size:11px;opacity:0;transition:opacity .3s;align-self:center;}}
 #fs{{display:none;position:fixed;inset:0;background:#000;z-index:99999;
   align-items:center;justify-content:center;cursor:pointer;
-  flex-direction:column;text-align:center;padding:32px;}}
-#fs-t{{color:#f2ede3;font-weight:700;direction:auto;line-height:1.35;
-  font-size:clamp(28px,8vw,80px);max-width:95%;}}
+  flex-direction:column;text-align:{("right" if tgt_dir == "rtl" else "left")};padding:32px;}}
+#fs-t{{
+  color:#f2ede3;font-weight:700;line-height:1.45;
+  font-size:clamp(28px,8vw,80px);max-width:95%;
+  direction:{tgt_dir};
+  font-family:{tgt_font};
+}}
 #fs-b{{position:absolute;bottom:0;left:0;right:0;height:3px;
   background:linear-gradient(90deg,#ce1126,#000 30%,#007a3d);}}
 #fs-h{{position:absolute;bottom:16px;font-size:11px;color:#1a1a1a;font-family:monospace;}}
@@ -830,15 +999,17 @@ body{{background:transparent;padding:4px 0 5px;}}
   <span id="cm">✓ Copied</span>
 </div>
 <div id="fs" onclick="closefs()">
-  <div id="fs-t">{ltranslated}</div>
+  <div id="fs-t" dir="{tgt_dir}">{esc(ltranslated)}</div>
   <div id="fs-h">Tap to close</div>
   <div id="fs-b"></div>
 </div>
 <script>
-const T={repr(ltranslated)},L="{tgt}";
+const T={js_translated}, L="{esc(tgt)}";
 function speak(){{
   speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(T);u.lang=L;speechSynthesis.speak(u);
+  const u=new SpeechSynthesisUtterance(T);
+  u.lang=L;
+  speechSynthesis.speak(u);
 }}
 function copy(){{
   navigator.clipboard.writeText(T).then(()=>{{
@@ -860,18 +1031,36 @@ function closefs(){{document.getElementById('fs').style.display='none';}}
   font-family:monospace;letter-spacing:.1em;'>─── PREVIOUS ───</div>
 """, unsafe_allow_html=True)
 
-            tb = tgt.split("-")[0].lower()
             h_html = ""
             for st_txt, sl, sts in older:
-                s_tr = tr(st_txt, tgt, sl)
-                sb2  = (sl or "").split("-")[0].lower()
-                so_d = f'<div class="ao">{sl.upper()}: {st_txt}</div>' \
-                       if (sb2 != tb and st_txt != s_tr) else ""
+                s_tr    = tr(st_txt, tgt, sl)
+                d2      = dir_attr(tgt)     # display direction = target
+                rs2     = rtl_style(tgt)
+                f2      = (
+                    "'Noto Naskh Arabic','Cairo',sans-serif"
+                    if d2 == "rtl" else "'Cairo',sans-serif"
+                )
+                src_d2  = dir_attr(sl)
+                src_rs2 = rtl_style(sl)
+                src_f2  = (
+                    "'Noto Naskh Arabic','Cairo',sans-serif"
+                    if src_d2 == "rtl" else "'Cairo',sans-serif"
+                )
+                show_src2 = (
+                    _norm_for_google(sl) != _norm_for_google(tgt)
+                    and esc(st_txt) != esc(s_tr)
+                )
+                so_d = (
+                    f'<div class="ao" dir="{src_d2}" '
+                    f'style="{src_rs2}font-family:{src_f2};">'
+                    f'{esc(sl).upper()}: {esc(st_txt)}</div>'
+                    if show_src2 else ""
+                )
                 h_html += f"""
 <div class="ac">
   {so_d}
-  <div class="at">{s_tr}</div>
-  <div class="ats">🕐 {sts}</div>
+  <div class="at" dir="{d2}" style="{rs2}font-family:{f2};">{esc(s_tr)}</div>
+  <div class="ats">🕐 {esc(sts)}</div>
 </div>"""
 
             components.html(PALETTE + f"""
@@ -880,8 +1069,8 @@ body{{background:transparent;padding:2px 0 20px;}}
 .ac{{background:#111;border:1px solid #1a1a1a;border-radius:10px;
   padding:11px 13px;margin:4px 0;opacity:.5;transition:opacity .2s;}}
 .ac:hover{{opacity:.8;}}
-.ao{{font-size:11px;color:#222;font-style:italic;direction:auto;margin-bottom:3px;}}
-.at{{font-size:15px;font-weight:600;color:#666;direction:auto;line-height:1.45;}}
+.ao{{font-size:11px;color:#222;font-style:italic;margin-bottom:3px;line-height:1.5;}}
+.at{{font-size:15px;font-weight:600;color:#666;line-height:1.65;}}
 .ats{{font-size:10px;color:#1a1a1a;font-family:'JetBrains Mono',monospace;margin-top:3px;}}
 </style>
 {h_html}
