@@ -423,58 +423,136 @@ def go(page, **kw):
 # ═══════════════════════════════════════════════════════════════════════════════
 if st.session_state.page == "home":
 
-    components.html(PALETTE + """
+    ui = st.session_state.ui_lang
+    T = UI_TEXT[ui]
+
+    rtl = ui == "ar"
+    text_align = "right" if rtl else "center"
+    direction = "rtl" if rtl else "ltr"
+
+    # ── LANGUAGE TOGGLE ──────────────────────────────────────────────────────
+    l1, l2, l3, l4 = st.columns(4, gap="small")
+
+    with l1:
+        if st.button("🇬🇧 EN", use_container_width=True):
+            st.session_state.ui_lang = "en"
+            st.rerun()
+
+    with l2:
+        if st.button("🇫🇷 FR", use_container_width=True):
+            st.session_state.ui_lang = "fr"
+            st.rerun()
+
+    with l3:
+        if st.button("🇹🇷 TR", use_container_width=True):
+            st.session_state.ui_lang = "tr"
+            st.rerun()
+
+    with l4:
+        if st.button("🇸🇦 AR", use_container_width=True):
+            st.session_state.ui_lang = "ar"
+            st.rerun()
+
+    components.html(PALETTE + f"""
 <style>
-body{
-  display:flex;flex-direction:column;align-items:center;
-  padding:30px 16px 18px;text-align:center;background:transparent;
-}
-.live{
+body{{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:30px 16px 18px;
+  text-align:{text_align};
+  direction:{direction};
+  background:transparent;
+}}
+
+.live{{
   font-family:'Bebas Neue',sans-serif;
-  font-size:clamp(56px,15vw,104px);line-height:.80;letter-spacing:.04em;
+  font-size:clamp(56px,15vw,104px);
+  line-height:.80;
+  letter-spacing:.04em;
   background:linear-gradient(135deg,#ff3348 0%,#fd6b4b 55%,#f2ede3 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
-.trans{
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+}}
+
+.trans{{
   font-family:'Bebas Neue',sans-serif;
-  font-size:clamp(56px,15vw,104px);line-height:.80;letter-spacing:.04em;
+  font-size:clamp(56px,15vw,104px);
+  line-height:.80;
+  letter-spacing:.04em;
   background:linear-gradient(135deg,#00c65e 0%,#f2ede3 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
-.sub{font-size:11px;color:#2e2e2e;letter-spacing:.18em;text-transform:uppercase;margin-top:12px;}
-.bar{
-  display:flex;height:2px;width:90%;max-width:340px;
-  border-radius:2px;overflow:hidden;margin:16px auto 0;
-}
-.b1{flex:1;background:#1e1e1e;}.b2{flex:1;background:#2a2a2a;}
-.b3{flex:1;background:#007a3d;}.b4{flex:1;background:#ce1126;}
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+}}
+
+.sub{{
+  font-size:11px;
+  color:#2e2e2e;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  margin-top:12px;
+  direction:{direction};
+  text-align:{text_align};
+  font-family:'Noto Naskh Arabic','Cairo',sans-serif;
+}}
+
+.bar{{
+  display:flex;
+  height:2px;
+  width:90%;
+  max-width:340px;
+  border-radius:2px;
+  overflow:hidden;
+  margin:16px auto 0;
+}}
+
+.b1{{flex:1;background:#1e1e1e;}}
+.b2{{flex:1;background:#2a2a2a;}}
+.b3{{flex:1;background:#007a3d;}}
+.b4{{flex:1;background:#ce1126;}}
 </style>
+
 <div class="live">LIVE</div>
 <div class="trans">TRANSLATE</div>
-<div class="sub">Real-time multilingual subtitles 🇵🇸</div>
-<div class="bar">
-  <div class="b1"></div><div class="b2"></div>
-  <div class="b3"></div><div class="b4"></div>
+
+<div class="sub">
+  {esc(T["tagline"])}
 </div>
-""", height=230, scrolling=False)
+
+<div class="bar">
+  <div class="b1"></div>
+  <div class="b2"></div>
+  <div class="b3"></div>
+  <div class="b4"></div>
+</div>
+""", height=240, scrolling=False)
 
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
     col1, col2 = st.columns(2, gap="small")
+
     with col1:
-        if st.button("🎤  SPEAKER", key="btn_spk", use_container_width=True):
+        if st.button(T["speaker"], key="btn_spk", use_container_width=True):
             go("speaker_setup")
+
     with col2:
-        if st.button("👥  AUDIENCE", key="btn_aud", use_container_width=True):
+        if st.button(T["audience"], key="btn_aud", use_container_width=True):
             go("audience_join")
 
-    st.markdown("""
-<div style='text-align:center;font-size:9px;color:#1c1c1c;
-  letter-spacing:.07em;padding:12px 0 4px;font-family:monospace;'>
-  faster-whisper · deep-translator · 100% free 🇵🇸
-</div>""", unsafe_allow_html=True)
-
-
+    st.markdown(f"""
+<div style='
+  text-align:{text_align};
+  direction:{direction};
+  font-size:9px;
+  color:#1c1c1c;
+  letter-spacing:.07em;
+  padding:12px 0 4px;
+  font-family:monospace;'>
+  {esc(T["footer"])}
+</div>
+""", unsafe_allow_html=True)
 # ═══════════════════════════════════════════════════════════════════════════════
 #  S P E A K E R   S E T U P
 # ═══════════════════════════════════════════════════════════════════════════════
