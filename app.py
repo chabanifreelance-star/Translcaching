@@ -36,7 +36,7 @@ st.set_page_config(
     page_title="LiveTranslate · Conference",
     page_icon="🌐",
     layout="wide",
-    initial_sidebar_ebar_state="expanded",
+    initial_sidebar_state="expanded",
 )
 
 # ─── Palestine-Inspired Modern Theme ────────────────────────────────────────
@@ -665,4 +665,349 @@ def _recording_worker(stop_event: threading.Event):
                         os.unlink(tmp_path)
 
                     st.session_state.rec_status = "listening"
-                    set_speaker_state("listen
+                    set_speaker_state("listening")
+
+    except Exception as e:
+        st.session_state.rec_status = f"error: {e}"
+    finally:
+        st.session_state.recording_active = False
+        set_speaker_state("idle")
+        st.session_state.rec_status = "idle"
+
+def start_recording():
+    global _stop_event, _worker_thread
+    if st.session_state.recording_active:
+        return
+    _stop_event.clear()
+    st.session_state.recording_active = True
+    st.session_state.rec_status = "starting"
+    _worker_thread = threading.Thread(
+        target=_recording_worker,
+        args=(_stop_event,),
+        daemon=True,
+    )
+    _worker_thread.start()
+
+def stop_recording():
+    global _stop_event
+    _stop_event.set()
+    st.session_state.recording_active = False
+    st.session_state.rec_status = "idle"
+    set_speaker_state("idle")
+
+# ─── Sidebar ──────────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown("""
+    <div style='text-align:center;padding:20px 0 10px'>
+      <div style='font-family:Bebas Neue,sans-serif;font-size:32px;
+                  background:linear-gradient(135deg,#f5f5f0,#00c65e);
+                  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                  background-clip:text;'>LIVETRANSLATE</div>
+      <div style='font-size:11px;color:#555;letter-spacing:0.12em;
+                  text-transform:uppercase;margin-top:4px;'>Conference Edition</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="flag-stripe">
+      <div class="stripe-black"></div>
+      <div class="stripe-white"></div>
+      <div class="stripe-green"></div>
+      <div class="stripe-red"></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    role = st.radio(
+        "**Your Role**",
+        ["🎤 Speaker", "👥 Audience"],
+        help="Speaker captures and broadcasts speech. Audience reads live translations.",
+    )
+
+    st.divider()
+
+    seg_count = get_segment_count()
+    speaker_state = get_speaker_state()
+
+    status_icon = {"listening": "🔴", "processing": "⚡", "idle": "⚫"}.get(speaker_state, "⚫")
+    st.markdown(f"""
+    <div class="rec-bar">
+      <div class="rec-dot {'active' if speaker_state=='listening' else 'processing' if speaker_state=='processing' else 'idle'}"></div>
+      <div>Speaker: <strong>{speaker_state.upper()}</strong></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class="stats-row">
+      <div class="stat-chip">Segments: <span>{seg_count}</span></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    _, model_backend = load_whisper()
+    st.markdown(f"""
+    <div style='font-size:11px;color:#555;margin-top:4px;font-family:JetBrains Mono,monospace;'>
+      Engine: {model_backend}
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.divider()
+
+    if st.button("🗑️ Clear Session", use_container_width=True):
+        clear_segments()
+        st.cache_data.clear()
+        st.rerun()
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  SPEAKER VIEW
+# ═══════════════════════════════════════════════════════════════════════════════
+if role == "🎤 Speaker":
+    # Hero header
+    st.markdown("""
+    <div class="hero-header">
+      <div class="hero-title">SPEAKER<br>BROADCAST</div>
+      <div class="hero-sub">Multilingual · Auto-Detect · Real-Time</div>
+    </div>
+    <div class="flag-stripe">
+      <div class="stripe-black"></div>
+      <div class="stripe-white"></div>
+      <div class="stripe-green"></div>
+      <div class="stripe-red"></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<span class="role-badge role-speaker">🎤 SPEAKER MODE</span>', unsafe_allow_html=True)
+
+    col_ctrl, col_feed = st.columns([1, 1], gap="large")
+
+    with col_ctrl:
+        st.markdown("### 🎙️ Microphone Control")
+        st.markdown(
+            "Speak in **any language** — Arabic, English, French, Spanish, German… "
+            "The AI auto-detects your language and transcribes it."
+        )
+
+        is_recording = st.session_state.recording_active
+        rec_status   = st.session_state.rec_status
+
+        # Status display
+        status_map = {
+            "idle":       ("idle",       "Microphone idle. Press START to begin."),
+            "starting":   ("processing", "Initialising microphone…"),
+            "listening":  ("active",     "🔴 Listening — speak now"),
+            "processing": ("processing", "⚡ Transcribing audio segment…"),
+        }
+        dot_cls, status_msg = status_map.get(
+            rec_status, ("idle", f"Status: {rec_status}")
+        )
+
+        st.markdown(f"""
+        <div class="rec-bar">
+          <div class="rec-dot {dot_cls}"></div>
+          <div>{status_msg}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Audio level visualisation (simulated from RMS)
+        rms = st.session_state.get("level_rms", 0.0)
+        if is_recording and rec_status == "listening":
+            bars_html = ""
+            for i in range(20):
+                h = max(4, min(26, int(rms * 600 * (0.5 + 0.5 * abs(np.sin(i * 0.7))))))
+                bars_html += f'<div class="level-bar" style="height:{h}px"></div>'
+            st.markdown(
+                f'<div class="level-container">{bars_html}</div>',
+                unsafe_allow_html=True
+            )
+
+        # Silence threshold info
+        st.markdown(f"""
+        <div style='font-size:12px;color:#555;margin-top:8px;font-family:JetBrains Mono,monospace;'>
+          Silence threshold: {SILENCE_RMS} RMS &nbsp;|&nbsp; Auto-flush after {SILENCE_SECS}s silence
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # Control buttons
+        c1, c2 = st.columns(2)
+        with c1:
+            if not is_recording:
+                if st.button("▶ START LISTENING", use_container_width=True):
+                    start_recording()
+                    st.rerun()
+        with c2:
+            if is_recording:
+                if st.button("⏹ STOP", use_container_width=True):
+                    stop_recording()
+                    st.rerun()
+
+        # Installation check
+        st.markdown("---")
+        st.markdown("**📦 Requirements check**")
+        deps = {
+            "faster-whisper": "faster_whisper",
+            "sounddevice":    "sounddevice",
+            "deep-translator":"deep_translator",
+        }
+        for name, mod in deps.items():
+            try:
+                __import__(mod)
+                st.markdown(f"✅ `{name}`")
+            except ImportError:
+                st.markdown(f"❌ `{name}` — run: `pip install {name}`")
+
+    with col_feed:
+        st.markdown("### 📡 Live Transcript Feed")
+
+        last_text = st.session_state.get("last_transcript", "")
+        last_lang = st.session_state.get("last_lang", "")
+
+        if last_text:
+            lang_label = LANG_DISPLAY.get(last_lang, f"[{last_lang}]") if last_lang else "Unknown"
+            st.markdown(f"""
+            <div class="subtitle-card latest">
+              <div class="subtitle-meta">
+                <span class="ts">LATEST</span>
+                <span class="lang-tag">DETECTED: {last_lang.upper() if last_lang else '?'}</span>
+              </div>
+              <div class="translated-text">{last_text}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # History
+        segments = get_segments(10)
+        if not segments:
+            st.markdown("""
+            <div class="waiting-box">
+              <div class="big-icon">🌐</div>
+              <p>No segments yet.<br>Press START and speak in any language.</p>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            for seg in reversed(segments):
+                seg_id, original, det_lang, ts = seg
+                st.markdown(f"""
+                <div class="subtitle-card">
+                  <div class="subtitle-meta">
+                    <span class="ts">🕐 {ts}</span>
+                    <span class="lang-tag">{det_lang.upper()}</span>
+                  </div>
+                  <div class="original-text">{original}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+    # Auto-refresh while recording
+    if is_recording:
+        time.sleep(1.5)
+        st.rerun()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  AUDIENCE VIEW
+# ═══════════════════════════════════════════════════════════════════════════════
+else:
+    st.markdown("""
+    <div class="hero-header">
+      <div class="hero-title">LIVE<br>SUBTITLES</div>
+      <div class="hero-sub">Select your language · Real-time translation</div>
+    </div>
+    <div class="flag-stripe">
+      <div class="stripe-black"></div>
+      <div class="stripe-white"></div>
+      <div class="stripe-green"></div>
+      <div class="stripe-red"></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<span class="role-badge role-audience">👥 AUDIENCE MODE</span>', unsafe_allow_html=True)
+
+    # Language selector + live toggle
+    top_l, top_r = st.columns([2, 1], gap="large")
+    with top_l:
+        lang_name = st.selectbox(
+            "🌐 **Your Language**",
+            list(LANGUAGES.keys()),
+            index=0,
+            help="Translations appear in this language.",
+        )
+        lang_code = LANGUAGES[lang_name]
+
+    with top_r:
+        st.markdown("<br>", unsafe_allow_html=True)
+        live_mode = st.toggle("🔴 Live (auto-refresh)", value=True)
+        refresh_rate = st.select_slider(
+            "Refresh interval",
+            options=[2, 3, 5, 10],
+            value=3,
+            format_func=lambda x: f"{x}s",
+            disabled=not live_mode,
+        )
+
+    # Speaker state indicator
+    speaker_state = get_speaker_state()
+    count = get_segment_count()
+    if speaker_state == "listening":
+        st.markdown(f"""
+        <div class="rec-bar">
+          <div class="rec-dot active"></div>
+          <div>Speaker is <strong>LIVE</strong> &nbsp;·&nbsp; {count} segment(s) received</div>
+        </div>
+        """, unsafe_allow_html=True)
+    elif speaker_state == "processing":
+        st.markdown(f"""
+        <div class="rec-bar">
+          <div class="rec-dot processing"></div>
+          <div>Transcribing… &nbsp;·&nbsp; {count} segment(s)</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div class="rec-bar">
+          <div class="rec-dot idle"></div>
+          <div>Speaker offline &nbsp;·&nbsp; {count} segment(s) stored &nbsp;{'— auto-refresh ' + str(refresh_rate) + 's' if live_mode else '— paused'}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.divider()
+
+    # Subtitle feed
+    segments = get_segments(20)
+    if not segments:
+        st.markdown("""
+        <div class="waiting-box">
+          <div class="big-icon">⏳</div>
+          <p>Waiting for the speaker to start broadcasting…<br>
+          <small style='color:#3a3a3a'>Make sure the Speaker tab is open on another device/browser window.</small></p>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        for i, seg in enumerate(reversed(segments)):
+            seg_id, original, det_lang, ts = seg
+            translated = translate_text(original, lang_code, det_lang)
+            is_latest = (i == 0)
+            card_cls = "subtitle-card latest" if is_latest else "subtitle-card"
+
+            # Show original if it's in a different language than target
+            tgt_clean = lang_code.split("-")[0].lower()
+            show_original = (det_lang.lower() != tgt_clean)
+
+            original_block = ""
+            if show_original:
+                lang_label = LANG_DISPLAY.get(det_lang, det_lang.upper())
+                original_block = f'<div class="original-text">{lang_label[:2].upper()} · {original}</div>'
+
+            st.markdown(f"""
+            <div class="{card_cls}">
+              <div class="subtitle-meta">
+                <span class="ts">🕐 {ts}</span>
+                <span class="lang-tag">{det_lang.upper() if det_lang else '?'} → {lang_code.upper()}</span>
+                {'<span class="lang-tag" style="background:rgba(206,17,38,0.1);color:#ff2d47;border-color:rgba(206,17,38,0.3)">LATEST</span>' if is_latest else ''}
+              </div>
+              {original_block}
+              <div class="translated-text">{translated}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # Auto-refresh loop
+    if live_mode:
+        time.sleep(refresh_rate)
+        st.rerun()
