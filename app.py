@@ -712,7 +712,7 @@ body{{
   <div class="pb-r"></div><div class="pb-m"></div>
   <div class="pb-d"></div><div class="pb-w"></div>
 </div>
-""", height=220, scrolling=False)
+""", height=220)
 
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 
@@ -756,7 +756,7 @@ body{{padding:16px 16px 6px;background:transparent;direction:{ui_dir};}}
 </style>
 <div class="title">{esc(T("your_room"))}</div>
 <div class="sub">{esc(T("share_code"))}</div>
-""", height=86, scrolling=False)
+""", height=86)
 
     st.iframe(PALETTE + f"""
 <style>
@@ -789,7 +789,7 @@ body{{
     <div class="hint">{esc(T("code_hint"))}</div>
   </div>
 </div>
-""", height=212, scrolling=False)
+""", height=212)
 
     st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
@@ -828,7 +828,7 @@ body{{padding:16px 16px 6px;background:transparent;direction:{ui_dir};}}
 </style>
 <div class="title">{esc(T("join_room"))}</div>
 <div class="sub">{esc(T("enter_code"))}</div>
-""", height=86, scrolling=False)
+""", height=86)
 
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 
@@ -882,7 +882,7 @@ body{{padding:12px 0;background:transparent;direction:{ask_dir};}}
   <div class="icon">💡</div>
   <div class="t">{T("ask_speaker")}</div>
 </div>
-""", height=128, scrolling=False)
+""", height=128)
 
 
 elif st.session_state.page == "speaker":
@@ -916,7 +916,7 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
 <div class="title">{esc(T("speak_now"))}</div>
 <div class="sub">{esc(T("tap_mic"))}</div>
 <div class="badge">🔑 {esc(T("room"))} {esc(room)}</div>
-""", height=112, scrolling=False)
+""", height=112)
     with nr:
         st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
         if st.button(T("home_btn"), key="spk_home", use_container_width=True):
@@ -973,7 +973,7 @@ body{{margin:0;padding:3px 0;background:transparent;}}
   <span style='color:#f2ede3;'>
     <b>{n}</b> {esc(T("segs"))} · <b>{esc(st.session_state.spk_lang.upper())}</b> · {esc(T("room"))} <b>{esc(room)}</b>
   </span>
-</div>""", height=46, scrolling=False)
+</div>""", height=46)
     with s2:
         if st.button(T("clear_btn"), key="clr_btn", use_container_width=True):
             db_clear(room)
@@ -1027,7 +1027,7 @@ body{{background:transparent;padding:4px 0 24px;}}
   font-family:'Noto Naskh Arabic','Cairo',sans-serif;}}
 </style>
 {cards}
-""", height=min(80 + len(rows) * 90, 2400), scrolling=True)
+""", height=min(80 + len(rows) * 90, 2400))
 
 
 elif st.session_state.page == "audience":
@@ -1062,7 +1062,7 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
 <div class="title">{esc(T("live_subs"))}</div>
 <div class="sub">{esc(T("realtime_subs"))}</div>
 <div class="badge">🔑 {esc(T("room"))} {esc(room)}</div>
-""", height=112, scrolling=False)
+""", height=112)
     with ar_:
         st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
         if st.button(T("home_btn"), key="aud_home", use_container_width=True):
@@ -1114,7 +1114,7 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
     });
   }
 })();
-</script>""", height=0, scrolling=False)
+</script>""", height=0)
 
     @st.fragment(run_every=st.session_state.aud_rate)
     def live_display():
@@ -1143,7 +1143,7 @@ body{{margin:0;padding:2px 0;background:transparent;}}
   <span style='color:#f2ede3;'>
     {esc(T("live_dot"))} · <b>{n}</b> {esc(T("segs"))} · {esc(T("room"))} <b>{esc(room)}</b> · <b>{esc(tgt.upper())}</b> · ↺{st.session_state.aud_rate}s
   </span>
-</div>""", height=38, scrolling=False)
+</div>""", height=38)
 
         if not rows:
             st.iframe(PALETTE + f"""
@@ -1217,7 +1217,7 @@ body{{padding:5px 0 3px;background:transparent;}}
   <div class="st" dir="{tgt_dir}">{esc(ltranslated)}</div>
   <div class="sm">🕐 {esc(lts)} · {esc((llang or "?").upper())} → {esc(tgt.upper())}</div>
 </div>
-""", height=max(175, fpx * 3 + 80), scrolling=False)
+""", height=max(175, fpx * 3 + 80))
 
         st.iframe(PALETTE + f"""
 <style>
@@ -1274,7 +1274,7 @@ function copy(){{
 function openfs(){{document.getElementById('fs').style.display='flex';}}
 function closefs(){{document.getElementById('fs').style.display='none';}}
 </script>
-""", height=58, scrolling=False)
+""", height=58)
 
         older = rows[1:]
         if older:
@@ -1326,6 +1326,6 @@ body{{background:transparent;padding:2px 0 20px;}}
 .ats{{font-size:10px;color:#555;font-family:'JetBrains Mono',monospace;margin-top:5px;}}
 </style>
 {h_html}
-""", height=min(60 + len(older) * 95, 1800), scrolling=True)
+""", height=min(60 + len(older) * 95, 1800))
 
     live_display()
