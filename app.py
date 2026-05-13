@@ -69,7 +69,7 @@ UI_STRINGS = {
         "live_dot": "🔴 Live",
     },
     "fr": {
-        "app_sub": "Sous-titres multilingues en temps réel",
+        "app_sub": "Multilingues en temps réel",
         "speaker_btn": "🎤  ORATEUR",
         "audience_btn": "👥  AUDIENCE",
         "footer": "faster-whisper · deep-translator · 100% gratuit",
