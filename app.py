@@ -29,6 +29,8 @@ def sanitize_code(raw: str) -> str:
 
 UI_STRINGS = {
     "en": {
+        "hero_line1": "LIVE",
+        "hero_line2": "TRANSLATE",
         "app_sub": "Real-time multilingual subtitles",
         "speaker_btn": "🎤  SPEAKER",
         "audience_btn": "👥  AUDIENCE",
@@ -69,6 +71,8 @@ UI_STRINGS = {
         "live_dot": "🔴 Live",
     },
     "fr": {
+        "hero_line1": "LIVE",
+        "hero_line2": "TRADUCTION",
         "app_sub": "Multilingues en temps réel",
         "speaker_btn": "🎤  ORATEUR",
         "audience_btn": "👥  AUDIENCE",
@@ -109,6 +113,8 @@ UI_STRINGS = {
         "live_dot": "🔴 En direct",
     },
     "ar": {
+        "hero_line1": "مباشر",
+        "hero_line2": "ترجمة",
         "app_sub": "ترجمة فورية متعددة اللغات",
         "speaker_btn": "🎤  المتحدث",
         "audience_btn": "👥  الجمهور",
@@ -149,6 +155,8 @@ UI_STRINGS = {
         "live_dot": "🔴 مباشر",
     },
     "tr": {
+        "hero_line1": "CANLI",
+        "hero_line2": "ÇEVİRİ",
         "app_sub": "Gerçek zamanlı çok dilli altyazılar",
         "speaker_btn": "🎤  KONUŞMACI",
         "audience_btn": "👥  KATİLİMCILAR",
@@ -189,6 +197,8 @@ UI_STRINGS = {
         "live_dot": "🔴 Canlı",
     },
     "es": {
+        "hero_line1": "EN VIVO",
+        "hero_line2": "TRADUCIR",
         "app_sub": "Subtítulos multilingües en tiempo real",
         "speaker_btn": "🎤  ORADOR",
         "audience_btn": "👥  AUDIENCIA",
@@ -428,36 +438,102 @@ def gen_code():
 init_db()
 
 @st.cache_resource(show_spinner=False)
-def get_whisper():
+def get_whisper_base():
+    """Small model for non-Arabic languages."""
     try:
         from faster_whisper import WhisperModel
         try:
-            return WhisperModel("base", device="cuda", compute_type="float16")
+            return WhisperModel("small", device="cuda", compute_type="float16")
         except Exception:
-            return WhisperModel("base", device="cpu", compute_type="int8")
+            return WhisperModel("small", device="cpu", compute_type="int8")
     except Exception:
         return None
 
-def transcribe(audio_bytes, lang_code):
-    model = get_whisper()
+@st.cache_resource(show_spinner=False)
+def get_whisper_arabic():
+    """Large-v2 for Arabic — base/small hallucinate heavily on Arabic."""
+    try:
+        from faster_whisper import WhisperModel
+        try:
+            return WhisperModel("large-v2", device="cuda", compute_type="float16")
+        except Exception:
+            return WhisperModel("large-v2", device="cpu", compute_type="int8")
+    except Exception:
+        try:
+            from faster_whisper import WhisperModel
+            return WhisperModel("medium", device="cpu", compute_type="int8")
+        except Exception:
+            return None
+
+_AR_HALLUCINATIONS = {
+    "شكراً", "شكرا", "شكراً للمشاهدة", "شكرا للمشاهدة",
+    "للمشاهدة", "للاستماع", "مع السلامة", "إلى اللقاء",
+    "أراكم في الحلقة القادمة", "تابعونا", "اشتركوا في القناة",
+    "سبحان الله", "بسم الله الرحمن الرحيم", ".", "..", "...", " ", "",
+}
+
+def _is_hallucination(text: str, lang_code: str) -> bool:
+    t = text.strip()
+    if not t or len(t) < 2:
+        return True
+    if lang_code == "ar":
+        if t in _AR_HALLUCINATIONS:
+            return True
+        ar_chars = sum(1 for c in t if '\u0600' <= c <= '\u06FF')
+        if len(t) > 0 and ar_chars == 0:
+            return True
+    return False
+
+def transcribe(audio_bytes: bytes, lang_code: str):
+    is_arabic = lang_code == "ar"
+    model = get_whisper_arabic() if is_arabic else get_whisper_base()
+    if not model:
+        model = get_whisper_base()
     if not model:
         return "", lang_code
     tmp = None
     try:
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             f.write(audio_bytes); tmp = f.name
-        segs, _ = model.transcribe(
-            tmp, task="transcribe", language=lang_code,
-            beam_size=5, vad_filter=True,
-            vad_parameters={"min_silence_duration_ms": 400},
-        )
-        return " ".join(s.text.strip() for s in segs).strip(), lang_code
+        if is_arabic:
+            segs, _ = model.transcribe(
+                tmp, task="transcribe", language="ar",
+                beam_size=5, best_of=5,
+                temperature=[0.0, 0.2, 0.4],
+                condition_on_previous_text=False,
+                no_speech_threshold=0.6,
+                compression_ratio_threshold=2.0,
+                log_prob_threshold=-0.8,
+                vad_filter=True,
+                vad_parameters={"min_silence_duration_ms": 300, "speech_pad_ms": 200, "threshold": 0.45},
+                initial_prompt="هذا نص باللغة العربية الفصحى.",
+            )
+            parts = []
+            for s in segs:
+                txt = s.text.strip()
+                if _is_hallucination(txt, "ar"):
+                    continue
+                if hasattr(s, 'avg_logprob') and s.avg_logprob < -1.0:
+                    continue
+                if hasattr(s, 'compression_ratio') and s.compression_ratio > 2.4:
+                    continue
+                parts.append(txt)
+            return " ".join(parts).strip(), lang_code
+        else:
+            segs, _ = model.transcribe(
+                tmp, task="transcribe", language=lang_code,
+                beam_size=5, vad_filter=True,
+                condition_on_previous_text=False,
+                vad_parameters={"min_silence_duration_ms": 400},
+            )
+            return " ".join(s.text.strip() for s in segs).strip(), lang_code
     except Exception:
         return "", lang_code
     finally:
         if tmp:
             try: os.unlink(tmp)
             except: pass
+
 
 _LANG_MAP = {"zh-cn": "zh-CN", "zh-tw": "zh-TW", "ar": "ar", "he": "iw"}
 
@@ -474,9 +550,7 @@ _TR_CACHE: dict = {}
 _TR_CACHE_MAX = 2000
 
 def tr(text: str, target: str, source: str) -> str:
-    """Translate text from source to target language.
-    For Arabic source, tries auto-detect first for better dialect handling,
-    then falls back to explicit 'ar'. Returns original text on failure."""
+    """Translate. Uses source=auto for Arabic to handle all dialects correctly."""
     if not text or not text.strip():
         return text
     src = _norm_for_google(source)
@@ -488,22 +562,14 @@ def tr(text: str, target: str, source: str) -> str:
         return _TR_CACHE[cache_key]
     try:
         from deep_translator import GoogleTranslator
-        # For Arabic source: use "auto" so Google handles dialects (MSA, Egyptian, Levantine…)
-        # This dramatically improves quality vs forcing "ar"
-        src_for_api = "auto" if src in ("ar", "iw", "fa", "ur") else src
-        result = GoogleTranslator(source=src_for_api, target=tgt).translate(text)
-        # If auto failed or returned garbage, try explicit source
+        # Arabic dialects (Egyptian, Gulf, Levantine…) translate better with auto-detect
+        use_src = "auto" if src in ("ar", "iw", "fa", "ur") else src
+        result = GoogleTranslator(source=use_src, target=tgt).translate(text)
         if not result or not result.strip():
             result = GoogleTranslator(source=src, target=tgt).translate(text)
         translated = result if result and result.strip() else text
     except Exception:
-        try:
-            # Last-resort retry with explicit source
-            from deep_translator import GoogleTranslator
-            result2 = GoogleTranslator(source=src, target=tgt).translate(text)
-            translated = result2 if result2 and result2.strip() else text
-        except Exception:
-            translated = text
+        translated = text
     if len(_TR_CACHE) >= _TR_CACHE_MAX:
         oldest = next(iter(_TR_CACHE))
         del _TR_CACHE[oldest]
@@ -611,38 +677,43 @@ body{{
   padding:16px 16px 12px;text-align:{ui_align};background:transparent;
   direction:{ui_dir};
 }}
-.kufic{{font-family:'Bebas Neue',sans-serif;font-size:clamp(60px,15vw,108px);line-height:.78;letter-spacing:.03em;}}
+.kufic{{
+  font-family:{'\'Noto Naskh Arabic\',\'Cairo\'' if rtl else '\'Bebas Neue\''};
+  font-size:clamp({'44px,11vw,80px' if rtl else '60px,15vw,108px'});
+  line-height:.85;letter-spacing:{'.02em' if rtl else '.03em'};
+  font-weight:{'900' if rtl else 'normal'};
+}}
 .live-word{{
   background:linear-gradient(135deg,#ff3348 0%,#fd6b4b 45%,#fff 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
 }}
 .tr-word{{
-  background:linear-gradient(135deg,#00c65e 0%,#fff 100%);
+  background:linear-gradient(135deg,#fd6b4b 0%,#ff8a6a 55%,#fff 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
 }}
-.sub{{font-size:11px;color:#2a2a2a;letter-spacing:.14em;text-transform:uppercase;
-  margin-top:12px;font-family:'JetBrains Mono',monospace;}}
+.sub{{font-size:11px;color:#666;letter-spacing:.14em;text-transform:uppercase;
+  margin-top:12px;font-family:{'\'Noto Naskh Arabic\',\'Cairo\'' if rtl else '\'JetBrains Mono\',monospace'};}}
 .pal-bar{{
   display:flex;width:86%;max-width:310px;height:4px;border-radius:4px;
   overflow:hidden;margin:14px auto 0;
 }}
-.pb-r{{flex:1;background:#ce1126;}}
-.pb-b{{flex:1;background:#050505;border:1px solid #1a1a1a;}}
-.pb-g{{flex:1;background:#007a3d;}}
-.pb-w{{flex:1;background:#f2ede3;}}
-@keyframes pulse{{0%,100%{{box-shadow:0 0 0 0 rgba(0,198,94,0)}}50%{{box-shadow:0 0 20px 5px rgba(0,198,94,.12)}}}}
+.pb-r{{flex:1;background:#fd6b4b;}}
+.pb-m{{flex:1;background:#ff8a6a;}}
+.pb-d{{flex:1;background:#e85530;}}
+.pb-w{{flex:1;background:#ce1126;}}
+@keyframes pulse{{0%,100%{{box-shadow:0 0 0 0 rgba(253,107,75,0)}}50%{{box-shadow:0 0 20px 5px rgba(253,107,75,.14)}}}}
 .pal-bar{{animation:pulse 3.5s infinite;}}
 </style>
 <div class="kufic">
-  <span class="live-word">LIVE</span><br>
-  <span class="tr-word">TRANSLATE</span>
+  <span class="live-word">{esc(T("hero_line1"))}</span><br>
+  <span class="tr-word">{esc(T("hero_line2"))}</span>
 </div>
 <div class="sub">{esc(T("app_sub"))} 🇵🇸</div>
 <div class="pal-bar">
-  <div class="pb-r"></div><div class="pb-b"></div>
-  <div class="pb-g"></div><div class="pb-w"></div>
+  <div class="pb-r"></div><div class="pb-m"></div>
+  <div class="pb-d"></div><div class="pb-w"></div>
 </div>
-""", height=210, scrolling=False)
+""", height=220, scrolling=False)
 
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 
@@ -805,8 +876,8 @@ body{{padding:12px 0;background:transparent;direction:{ask_dir};}}
   background:linear-gradient(90deg,#ce1126 0%,#ce1126 33%,#000 33%,#000 66%,#007a3d 66%);
 }}
 .icon{{font-size:28px;margin-bottom:8px;}}
-.t{{font-size:12px;color:#888;line-height:1.7;font-family:'Cairo',sans-serif;}}
-.t b{{color:#fd6b4b;}}
+.t{{font-size:12px;color:#2e2e2e;line-height:1.7;font-family:'Cairo',sans-serif;}}
+.t b{{color:#3a3a3a;}}
 </style>
 <div class="tip">
   <div class="icon">💡</div>
@@ -915,7 +986,7 @@ body{{margin:0;padding:3px 0;background:transparent;}}
         components.html(PALETTE + f"""
 <style>body{{padding:28px 0;text-align:center;background:transparent;}}</style>
 <div style='font-size:38px;margin-bottom:8px;'>🎙️</div>
-<div style='font-size:13px;color:#888;font-family:"Cairo",sans-serif;'>{esc(T("nothing_yet"))}</div>
+<div style='font-size:13px;color:#2a2a2a;font-family:"Cairo",sans-serif;'>{esc(T("nothing_yet"))}</div>
 """, height=90)
     else:
         cards = ""
@@ -1079,8 +1150,8 @@ body{{margin:0;padding:2px 0;background:transparent;}}
             components.html(PALETTE + f"""
 <style>body{{padding:30px 0;text-align:center;background:transparent;}}</style>
 <div style='font-size:42px;margin-bottom:9px'>⏳</div>
-<div style='font-size:14px;color:#888;font-family:"Cairo",sans-serif;'>{esc(T("waiting"))}</div>
-<div style='font-size:11px;color:#555;margin-top:5px;font-family:"Cairo",sans-serif;'>
+<div style='font-size:14px;color:#888;font-family:"Cairo","Noto Naskh Arabic",sans-serif;'>{esc(T("waiting"))}</div>
+<div style='font-size:11px;color:#555;margin-top:5px;font-family:"Cairo","Noto Naskh Arabic",sans-serif;'>
   {esc(T("will_broadcast"))}</div>
 """, height=150)
             return
@@ -1209,8 +1280,8 @@ function closefs(){{document.getElementById('fs').style.display='none';}}
         older = rows[1:]
         if older:
             st.markdown(f"""
-<div style='margin:6px 0 4px;font-size:10px;color:#555;
-  font-family:monospace;letter-spacing:.12em;text-align:center;'>{esc(T("previous"))}</div>
+<div style='margin:6px 0 4px;font-size:10px;color:#555;text-align:center;
+  font-family:monospace;letter-spacing:.12em;'>{esc(T("previous"))}</div>
 """, unsafe_allow_html=True)
 
             h_html = ""
@@ -1248,12 +1319,12 @@ function closefs(){{document.getElementById('fs').style.display='none';}}
             components.html(PALETTE + f"""
 <style>
 body{{background:transparent;padding:2px 0 20px;}}
-.ac{{background:#0d0d0d;border:1px solid #222;border-radius:12px;
+.ac{{background:#0d0d0d;border:1px solid #1e1e1e;border-radius:12px;
   padding:13px 15px;margin:5px 0;opacity:1;transition:all .2s;}}
-.ac:hover{{border-color:#fd6b4b;box-shadow:0 0 0 1px rgba(253,107,75,.1);}}
+.ac:hover{{border-color:#fd6b4b;box-shadow:0 0 0 1px rgba(253,107,75,.12);}}
 .ao{{font-size:11px;color:#666;font-style:italic;margin-bottom:5px;line-height:1.6;}}
 .at{{font-size:15px;font-weight:600;color:#c8c4bc;line-height:1.7;}}
-.ats{{font-size:10px;color:#444;font-family:'JetBrains Mono',monospace;margin-top:5px;}}
+.ats{{font-size:10px;color:#555;font-family:'JetBrains Mono',monospace;margin-top:5px;}}
 </style>
 {h_html}
 """, height=min(60 + len(older) * 95, 1800), scrolling=True)
