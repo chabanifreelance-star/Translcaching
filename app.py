@@ -1114,7 +1114,7 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
     });
   }
 })();
-</script>""", height=0)
+</script>""", height=1)
 
     @st.fragment(run_every=st.session_state.aud_rate)
     def live_display():
