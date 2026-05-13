@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import sqlite3, os, tempfile, random, string, html, re, time, json
 from datetime import datetime
 
@@ -670,7 +669,7 @@ if st.session_state.page == "home":
     ui_dir = "rtl" if rtl else "ltr"
     ui_align = "right" if rtl else "center"
 
-    components.html(PALETTE + f"""
+    st.iframe(PALETTE + f"""
 <style>
 body{{
   display:flex;flex-direction:column;align-items:center;
@@ -743,7 +742,7 @@ elif st.session_state.page == "speaker_setup":
     rtl = is_rtl_ui()
     ui_dir = "rtl" if rtl else "ltr"
 
-    components.html(PALETTE + f"""
+    st.iframe(PALETTE + f"""
 <style>
 body{{padding:16px 16px 6px;background:transparent;direction:{ui_dir};}}
 .title{{
@@ -759,7 +758,7 @@ body{{padding:16px 16px 6px;background:transparent;direction:{ui_dir};}}
 <div class="sub">{esc(T("share_code"))}</div>
 """, height=86, scrolling=False)
 
-    components.html(PALETTE + f"""
+    st.iframe(PALETTE + f"""
 <style>
 body{{
   display:flex;flex-direction:column;align-items:center;
@@ -815,7 +814,7 @@ elif st.session_state.page == "audience_join":
     rtl = is_rtl_ui()
     ui_dir = "rtl" if rtl else "ltr"
 
-    components.html(PALETTE + f"""
+    st.iframe(PALETTE + f"""
 <style>
 body{{padding:16px 16px 6px;background:transparent;direction:{ui_dir};}}
 .title{{
@@ -864,7 +863,7 @@ body{{padding:16px 16px 6px;background:transparent;direction:{ui_dir};}}
             go("home")
 
     ask_dir = "rtl" if rtl else "ltr"
-    components.html(PALETTE + f"""
+    st.iframe(PALETTE + f"""
 <style>
 body{{padding:12px 0;background:transparent;direction:{ask_dir};}}
 .tip{{
@@ -897,7 +896,7 @@ elif st.session_state.page == "speaker":
 
     nl, nr = st.columns([3, 1], gap="small")
     with nl:
-        components.html(PALETTE + f"""
+        st.iframe(PALETTE + f"""
 <style>
 body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
 .title{{
@@ -960,7 +959,7 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
     n = db_count(room)
     s1, s2 = st.columns([4, 1], gap="small")
     with s1:
-        components.html(f"""
+        st.iframe(f"""
 <style>
 @keyframes dp{{0%,100%{{opacity:1}}50%{{opacity:.25}}}}
 body{{margin:0;padding:3px 0;background:transparent;}}
@@ -983,7 +982,7 @@ body{{margin:0;padding:3px 0;background:transparent;}}
 
     rows = db_all(room, 60)
     if not rows:
-        components.html(PALETTE + f"""
+        st.iframe(PALETTE + f"""
 <style>body{{padding:28px 0;text-align:center;background:transparent;}}</style>
 <div style='font-size:38px;margin-bottom:8px;'>🎙️</div>
 <div style='font-size:13px;color:#2a2a2a;font-family:"Cairo",sans-serif;'>{esc(T("nothing_yet"))}</div>
@@ -1009,7 +1008,7 @@ body{{margin:0;padding:3px 0;background:transparent;}}
   </div>
   <div class="htxt" dir="{d}" style="{rs}">{safe_txt}</div>
 </div>"""
-        components.html(PALETTE + f"""
+        st.iframe(PALETTE + f"""
 <style>
 body{{background:transparent;padding:4px 0 24px;}}
 @keyframes sl{{from{{opacity:.1;transform:translateY(-6px)}}to{{opacity:1;transform:none}}}}
@@ -1042,7 +1041,7 @@ elif st.session_state.page == "audience":
 
     al, ar_ = st.columns([3, 1], gap="small")
     with al:
-        components.html(PALETTE + f"""
+        st.iframe(PALETTE + f"""
 <style>
 body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
 .title{{
@@ -1105,7 +1104,7 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
         if st.button("A+", key="fup", use_container_width=True):
             st.session_state.aud_fpx = min(64, st.session_state.aud_fpx + 4)
 
-    components.html("""<script>
+    st.iframe("""<script>
 (async()=>{
   if('wakeLock' in navigator){
     try{await navigator.wakeLock.request('screen');}catch(e){}
@@ -1130,7 +1129,7 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
             if tgt_dir == "rtl" else "'Cairo',sans-serif"
         )
 
-        components.html(f"""
+        st.iframe(f"""
 <style>
 @keyframes dp{{0%,100%{{opacity:1}}50%{{opacity:.2}}}}
 body{{margin:0;padding:2px 0;background:transparent;}}
@@ -1147,7 +1146,7 @@ body{{margin:0;padding:2px 0;background:transparent;}}
 </div>""", height=38, scrolling=False)
 
         if not rows:
-            components.html(PALETTE + f"""
+            st.iframe(PALETTE + f"""
 <style>body{{padding:30px 0;text-align:center;background:transparent;}}</style>
 <div style='font-size:42px;margin-bottom:9px'>⏳</div>
 <div style='font-size:14px;color:#888;font-family:"Cairo","Noto Naskh Arabic",sans-serif;'>{esc(T("waiting"))}</div>
@@ -1179,7 +1178,7 @@ body{{margin:0;padding:2px 0;background:transparent;}}
         js_translated = json.dumps(ltranslated)
         fs_align = "right" if tgt_dir == "rtl" else "left"
 
-        components.html(PALETTE + f"""
+        st.iframe(PALETTE + f"""
 <style>
 body{{padding:5px 0 3px;background:transparent;}}
 .stage{{
@@ -1220,7 +1219,7 @@ body{{padding:5px 0 3px;background:transparent;}}
 </div>
 """, height=max(175, fpx * 3 + 80), scrolling=False)
 
-        components.html(PALETTE + f"""
+        st.iframe(PALETTE + f"""
 <style>
 body{{background:transparent;padding:4px 0 5px;}}
 .row{{display:flex;gap:8px;}}
@@ -1316,7 +1315,7 @@ function closefs(){{document.getElementById('fs').style.display='none';}}
   <div class="ats">🕐 {esc(sts)}</div>
 </div>"""
 
-            components.html(PALETTE + f"""
+            st.iframe(PALETTE + f"""
 <style>
 body{{background:transparent;padding:2px 0 20px;}}
 .ac{{background:#0d0d0d;border:1px solid #1e1e1e;border-radius:12px;
