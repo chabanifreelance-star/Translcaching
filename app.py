@@ -474,6 +474,9 @@ _TR_CACHE: dict = {}
 _TR_CACHE_MAX = 2000
 
 def tr(text: str, target: str, source: str) -> str:
+    """Translate text from source to target language.
+    For Arabic source, tries auto-detect first for better dialect handling,
+    then falls back to explicit 'ar'. Returns original text on failure."""
     if not text or not text.strip():
         return text
     src = _norm_for_google(source)
@@ -485,10 +488,22 @@ def tr(text: str, target: str, source: str) -> str:
         return _TR_CACHE[cache_key]
     try:
         from deep_translator import GoogleTranslator
-        result = GoogleTranslator(source=src, target=tgt).translate(text)
+        # For Arabic source: use "auto" so Google handles dialects (MSA, Egyptian, Levantine…)
+        # This dramatically improves quality vs forcing "ar"
+        src_for_api = "auto" if src in ("ar", "iw", "fa", "ur") else src
+        result = GoogleTranslator(source=src_for_api, target=tgt).translate(text)
+        # If auto failed or returned garbage, try explicit source
+        if not result or not result.strip():
+            result = GoogleTranslator(source=src, target=tgt).translate(text)
         translated = result if result and result.strip() else text
     except Exception:
-        translated = text
+        try:
+            # Last-resort retry with explicit source
+            from deep_translator import GoogleTranslator
+            result2 = GoogleTranslator(source=src, target=tgt).translate(text)
+            translated = result2 if result2 and result2.strip() else text
+        except Exception:
+            translated = text
     if len(_TR_CACHE) >= _TR_CACHE_MAX:
         oldest = next(iter(_TR_CACHE))
         del _TR_CACHE[oldest]
@@ -790,8 +805,8 @@ body{{padding:12px 0;background:transparent;direction:{ask_dir};}}
   background:linear-gradient(90deg,#ce1126 0%,#ce1126 33%,#000 33%,#000 66%,#007a3d 66%);
 }}
 .icon{{font-size:28px;margin-bottom:8px;}}
-.t{{font-size:12px;color:#2e2e2e;line-height:1.7;font-family:'Cairo',sans-serif;}}
-.t b{{color:#3a3a3a;}}
+.t{{font-size:12px;color:#888;line-height:1.7;font-family:'Cairo',sans-serif;}}
+.t b{{color:#fd6b4b;}}
 </style>
 <div class="tip">
   <div class="icon">💡</div>
@@ -900,7 +915,7 @@ body{{margin:0;padding:3px 0;background:transparent;}}
         components.html(PALETTE + f"""
 <style>body{{padding:28px 0;text-align:center;background:transparent;}}</style>
 <div style='font-size:38px;margin-bottom:8px;'>🎙️</div>
-<div style='font-size:13px;color:#2a2a2a;font-family:"Cairo",sans-serif;'>{esc(T("nothing_yet"))}</div>
+<div style='font-size:13px;color:#888;font-family:"Cairo",sans-serif;'>{esc(T("nothing_yet"))}</div>
 """, height=90)
     else:
         cards = ""
@@ -1064,8 +1079,8 @@ body{{margin:0;padding:2px 0;background:transparent;}}
             components.html(PALETTE + f"""
 <style>body{{padding:30px 0;text-align:center;background:transparent;}}</style>
 <div style='font-size:42px;margin-bottom:9px'>⏳</div>
-<div style='font-size:14px;color:#2a2a2a;font-family:"Cairo",sans-serif;'>{esc(T("waiting"))}</div>
-<div style='font-size:11px;color:#1a1a1a;margin-top:5px;font-family:"Cairo",sans-serif;'>
+<div style='font-size:14px;color:#888;font-family:"Cairo",sans-serif;'>{esc(T("waiting"))}</div>
+<div style='font-size:11px;color:#555;margin-top:5px;font-family:"Cairo",sans-serif;'>
   {esc(T("will_broadcast"))}</div>
 """, height=150)
             return
@@ -1123,7 +1138,7 @@ body{{padding:5px 0 3px;background:transparent;}}
   position:relative;z-index:2;
 }}
 @keyframes fi{{from{{opacity:.1;transform:translateY(8px)}}to{{opacity:1;transform:none}}}}
-.sm{{font-family:'JetBrains Mono',monospace;font-size:10px;color:#1c1c1c;margin-top:11px;
+.sm{{font-family:'JetBrains Mono',monospace;font-size:10px;color:#555;margin-top:11px;
   position:relative;z-index:2;}}
 </style>
 <div class="stage">
@@ -1194,8 +1209,8 @@ function closefs(){{document.getElementById('fs').style.display='none';}}
         older = rows[1:]
         if older:
             st.markdown(f"""
-<div style='margin:3px 0;font-size:10px;color:#1a1a1a;
-  font-family:monospace;letter-spacing:.1em;'>{esc(T("previous"))}</div>
+<div style='margin:6px 0 4px;font-size:10px;color:#555;
+  font-family:monospace;letter-spacing:.12em;text-align:center;'>{esc(T("previous"))}</div>
 """, unsafe_allow_html=True)
 
             h_html = ""
@@ -1233,14 +1248,14 @@ function closefs(){{document.getElementById('fs').style.display='none';}}
             components.html(PALETTE + f"""
 <style>
 body{{background:transparent;padding:2px 0 20px;}}
-.ac{{background:#060606;border:1px solid #111;border-radius:12px;
-  padding:12px 14px;margin:4px 0;opacity:.44;transition:all .2s;}}
-.ac:hover{{opacity:.75;border-color:#1e1e1e;}}
-.ao{{font-size:11px;color:#1c1c1c;font-style:italic;margin-bottom:3px;line-height:1.5;}}
-.at{{font-size:15px;font-weight:600;color:#4a4a4a;line-height:1.65;}}
-.ats{{font-size:10px;color:#1a1a1a;font-family:'JetBrains Mono',monospace;margin-top:3px;}}
+.ac{{background:#0d0d0d;border:1px solid #222;border-radius:12px;
+  padding:13px 15px;margin:5px 0;opacity:1;transition:all .2s;}}
+.ac:hover{{border-color:#fd6b4b;box-shadow:0 0 0 1px rgba(253,107,75,.1);}}
+.ao{{font-size:11px;color:#666;font-style:italic;margin-bottom:5px;line-height:1.6;}}
+.at{{font-size:15px;font-weight:600;color:#c8c4bc;line-height:1.7;}}
+.ats{{font-size:10px;color:#444;font-family:'JetBrains Mono',monospace;margin-top:5px;}}
 </style>
 {h_html}
-""", height=min(50 + len(older) * 86, 1800), scrolling=True)
+""", height=min(60 + len(older) * 95, 1800), scrolling=True)
 
     live_display()
