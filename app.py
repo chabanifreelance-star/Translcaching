@@ -465,19 +465,15 @@ def get_whisper_base():
 
 @st.cache_resource(show_spinner=False)
 def get_whisper_arabic():
-    """Medium model for Arabic — large-v2 OOMs on Streamlit Cloud CPU; medium is reliable."""
+    """Small model for Arabic — fast enough for real-time use, pinned to language='ar'."""
     try:
         from faster_whisper import WhisperModel
         try:
-            return WhisperModel("medium", device="cuda", compute_type="float16")
+            return WhisperModel("small", device="cuda", compute_type="float16")
         except Exception:
-            return WhisperModel("medium", device="cpu", compute_type="int8")
-    except Exception:
-        try:
-            from faster_whisper import WhisperModel
             return WhisperModel("small", device="cpu", compute_type="int8")
-        except Exception:
-            return None
+    except Exception:
+        return None
 
 _AR_HALLUCINATIONS = {
     "شكراً", "شكرا", "شكراً للمشاهدة", "شكرا للمشاهدة",
@@ -517,8 +513,8 @@ def transcribe(audio_bytes: bytes, lang_code: str, room: str = None):
         if is_arabic:
             segs, _ = model.transcribe(
                 tmp, task="transcribe", language="ar",
-                beam_size=5, best_of=5,
-                temperature=[0.0, 0.2, 0.4],
+                beam_size=1, best_of=1,
+                temperature=0.0,
                 condition_on_previous_text=False,
                 no_speech_threshold=0.6,
                 compression_ratio_threshold=2.0,
@@ -950,27 +946,13 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
         if st.button(T("home_btn"), key="spk_home", use_container_width=True):
             go("home", room_code=None)
 
-    sl1, sl2 = st.columns(2, gap="small")
-    with sl1:
-        spk_label = st.selectbox(
-            T("speaking_lang"),
-            list(SPEAKER_LANGS.keys()),
-            index=list(SPEAKER_LANGS.values()).index(st.session_state.spk_lang),
-            key="spk_lang_sel",
-        )
-        st.session_state.spk_lang = SPEAKER_LANGS[spk_label]
-    with sl2:
-        prev_label = st.selectbox(
-            T("preview_lang"),
-            list(AUDIENCE_LANGS.keys()),
-            index=list(AUDIENCE_LANGS.values()).index(
-                st.session_state.get("spk_preview_lang", "ar")
-                if st.session_state.get("spk_preview_lang", "ar") in AUDIENCE_LANGS.values()
-                else "ar"
-            ),
-            key="spk_prev_lang_sel",
-        )
-        st.session_state.spk_preview_lang = AUDIENCE_LANGS[prev_label]
+    spk_label = st.selectbox(
+        T("speaking_lang"),
+        list(SPEAKER_LANGS.keys()),
+        index=list(SPEAKER_LANGS.values()).index(st.session_state.spk_lang),
+        key="spk_lang_sel",
+    )
+    st.session_state.spk_lang = SPEAKER_LANGS[spk_label]
 
     st.markdown(f"""
 <div style='font-size:11px;color:#2a2a2a;letter-spacing:.1em;text-transform:uppercase;
@@ -990,99 +972,12 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
                 # Pass room so each segment is saved to DB as soon as it's ready
                 txt, lang = transcribe(audio_bytes, lang_code, room=room)
             if txt:
-                # Simultaneous translation: translate immediately into preview language
-                prev_lang = st.session_state.get("spk_preview_lang", "ar")
-                with st.spinner("Translating…"):
-                    translated = tr(txt, prev_lang, lang)
-                st.session_state.last_translated = {prev_lang: translated}
                 # Segments already saved inside transcribe(); just update UI state
                 st.session_state.last_txt  = txt
                 st.session_state.last_lang = lang
                 st.rerun()
             else:
                 st.warning("⚠️ No speech detected — try again.")
-
-    # ── Simultaneous translation live card ───────────────────────────────────
-    if st.session_state.last_txt:
-        prev_lang     = st.session_state.get("spk_preview_lang", "ar")
-        last_txt      = st.session_state.last_txt
-        last_lang     = st.session_state.last_lang
-        translated    = st.session_state.last_translated.get(prev_lang)
-        # If preview language changed after last recording, re-translate on the fly
-        if translated is None:
-            translated = tr(last_txt, prev_lang, last_lang)
-            st.session_state.last_translated[prev_lang] = translated
-
-        orig_dir    = dir_attr(last_lang)
-        orig_style  = rtl_style(last_lang)
-        orig_font   = ("'Noto Naskh Arabic','Cairo',sans-serif"
-                       if orig_dir == "rtl" else "'Cairo',sans-serif")
-        tgt_dir     = dir_attr(prev_lang)
-        tgt_style   = rtl_style(prev_lang)
-        tgt_font    = ("'Noto Naskh Arabic','Cairo',sans-serif"
-                       if tgt_dir == "rtl" else "'Cairo',sans-serif")
-        same_lang   = _norm_for_google(last_lang) == _norm_for_google(prev_lang)
-
-        orig_div = (
-            f'<div class="orig-lbl">{esc(T("original"))} · {esc(last_lang.upper())}</div>'
-            f'<div class="orig-txt" dir="{orig_dir}" style="{orig_style}font-family:{orig_font};">'
-            f'{esc(last_txt)}</div>'
-        )
-        trans_div = "" if same_lang else (
-            f'<div class="tr-lbl">{esc(prev_lang.upper())}</div>'
-            f'<div class="tr-txt" dir="{tgt_dir}" style="{tgt_style}font-family:{tgt_font};">'
-            f'{esc(translated)}</div>'
-        )
-
-        st.iframe(PALETTE + f"""
-<style>
-body{{padding:6px 0 4px;background:transparent;}}
-.live-card{{
-  background:linear-gradient(135deg,rgba(0,122,61,.07),#060606 55%);
-  border:1px solid rgba(0,198,94,.2);border-radius:16px;
-  padding:16px 18px;position:relative;overflow:hidden;
-}}
-.live-card::before{{
-  content:'';position:absolute;top:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,#007a3d,#00c65e,#007a3d);
-  animation:sh 2.5s linear infinite;background-size:200% 100%;
-}}
-@keyframes sh{{0%{{background-position:200% 0}}100%{{background-position:-200% 0}}}}
-.live-badge{{
-  display:inline-flex;align-items:center;gap:5px;margin-bottom:10px;
-  background:rgba(0,198,94,.1);border:1px solid rgba(0,198,94,.25);
-  border-radius:6px;padding:2px 9px;
-  font-size:10px;font-weight:700;letter-spacing:.1em;color:#00c65e;
-  font-family:'JetBrains Mono',monospace;text-transform:uppercase;
-}}
-.dot{{
-  width:7px;height:7px;border-radius:50%;background:#00c65e;
-  animation:dp 1.2s infinite;display:inline-block;
-}}
-@keyframes dp{{0%,100%{{opacity:1}}50%{{opacity:.2}}}}
-.orig-lbl,.tr-lbl{{
-  font-size:9px;color:#333;letter-spacing:.14em;text-transform:uppercase;
-  font-family:'JetBrains Mono',monospace;margin-bottom:3px;margin-top:8px;
-}}
-.orig-txt{{
-  font-size:14px;color:#555;line-height:1.6;font-weight:600;
-  padding-bottom:8px;border-bottom:1px solid #111;
-}}
-.tr-txt{{
-  font-size:20px;font-weight:700;color:#f2ede3;line-height:1.6;
-  animation:fi .35s ease;
-}}
-@keyframes fi{{from{{opacity:.1;transform:translateY(6px)}}to{{opacity:1;transform:none}}}}
-</style>
-<div class="live-card">
-  <div class="live-badge">
-    <span class="dot"></span>
-    {esc(T("live_translation"))}
-  </div>
-  {orig_div}
-  {trans_div}
-</div>
-""", height=210 if not same_lang else 140)
 
     n = db_count(room)
     s1, s2 = st.columns([4, 1], gap="small")
