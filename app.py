@@ -1180,28 +1180,58 @@ body{{margin:0;padding:2px 0;background:transparent;}}
 """, height=150)
             return
 
-        ltxt, llang, lts = rows[0]
-        ltranslated = tr(ltxt, tgt, llang)
+        # ── Build ONE continuous translated text from all recent segments ──
+        # rows are newest-first; reverse so we build in chronological order
+        chronological = list(reversed(rows))
 
-        src_dir   = dir_attr(llang)
-        src_style = rtl_style(llang)
+        # Translate each segment and join into a single flowing text
+        translated_parts = []
+        source_parts = []
+        first_lang = chronological[0][1] if chronological else ""
+        last_ts = rows[0][2]  # most recent timestamp (rows is newest-first)
+
+        for seg_txt, seg_lang, seg_ts in chronological:
+            t = tr(seg_txt, tgt, seg_lang)
+            if t and t.strip():
+                translated_parts.append(t.strip())
+            if seg_txt and seg_txt.strip():
+                source_parts.append(seg_txt.strip())
+
+        # Join with space (RTL languages naturally concatenate this way too)
+        separator = " "
+        full_translated = separator.join(translated_parts)
+        full_source = separator.join(source_parts)
+
+        show_src = (
+            _norm_for_google(first_lang) != _norm_for_google(tgt)
+            and full_source != full_translated
+            and full_source
+        )
+
+        src_dir   = dir_attr(first_lang)
+        src_style = rtl_style(first_lang)
         src_font  = (
             "'Noto Naskh Arabic','Cairo',sans-serif"
             if src_dir == "rtl" else "'Cairo',sans-serif"
         )
-        show_src = (
-            _norm_for_google(llang) != _norm_for_google(tgt)
-            and esc(ltxt) != esc(ltranslated)
-        )
+
         src_div = (
             f'<div class="so" dir="{src_dir}" '
             f'style="{src_style}font-family:{src_font};">'
-            f'{esc(llang).upper()}: {esc(ltxt)}</div>'
+            f'{esc(full_source)}</div>'
             if show_src else ""
         )
 
-        js_translated = json.dumps(ltranslated)
+        js_translated = json.dumps(full_translated)
         fs_align = "right" if tgt_dir == "rtl" else "left"
+
+        # Estimate card height based on text length and font size
+        char_count = len(full_translated)
+        # rough chars per line at given font size in a ~340px wide card
+        chars_per_line = max(1, int(320 / (fpx * 0.55)))
+        lines = max(1, -(-char_count // chars_per_line))  # ceiling division
+        src_extra = max(0, int(len(full_source) / chars_per_line) * 18 + 40) if show_src else 0
+        card_h = max(180, lines * (fpx + 10) + src_extra + 100)
 
         st.iframe(PALETTE + f"""
 <style>
@@ -1209,7 +1239,7 @@ body{{padding:5px 0 3px;background:transparent;}}
 .stage{{
   background:#060606;border-radius:18px;
   padding:24px 20px;position:relative;overflow:hidden;
-  display:flex;flex-direction:column;justify-content:center;min-height:120px;
+  display:flex;flex-direction:column;justify-content:flex-start;
 }}
 .border-glow{{
   position:absolute;inset:-1px;z-index:0;border-radius:18px;pointer-events:none;
@@ -1224,25 +1254,31 @@ body{{padding:5px 0 3px;background:transparent;}}
   font-size:11px;color:#2a2a2a;font-style:italic;
   margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid #111;
   line-height:1.6;position:relative;z-index:2;
+  word-break:break-word;
 }}
 .st{{
-  color:#f2ede3;font-weight:700;line-height:1.65;
-  font-size:{fpx}px;animation:fi .4s ease;
+  color:#f2ede3;font-weight:700;line-height:1.75;
+  font-size:{fpx}px;
   font-family:{tgt_font};
   {tgt_style}
   position:relative;z-index:2;
+  word-break:break-word;white-space:pre-wrap;
 }}
-@keyframes fi{{from{{opacity:.1;transform:translateY(8px)}}to{{opacity:1;transform:none}}}}
+/* Highlight only the very last segment (newest words) */
+.st .new-seg{{
+  color:#fd6b4b;
+  transition:color 1.5s ease;
+}}
 .sm{{font-family:'JetBrains Mono',monospace;font-size:10px;color:#555;margin-top:11px;
   position:relative;z-index:2;}}
 </style>
 <div class="stage">
   <div class="border-glow"></div>
   {src_div}
-  <div class="st" dir="{tgt_dir}">{esc(ltranslated)}</div>
-  <div class="sm">🕐 {esc(lts)} · {esc((llang or "?").upper())} → {esc(tgt.upper())}</div>
+  <div class="st" dir="{tgt_dir}">{esc(separator.join(translated_parts[:-1])) + (' ' if len(translated_parts) > 1 else '') + '<span class="new-seg">' + esc(translated_parts[-1] if translated_parts else '') + '</span>'}</div>
+  <div class="sm">🕐 {esc(last_ts)} · {esc(tgt.upper())} · {n} {esc(T("segs"))}</div>
 </div>
-""", height=max(175, fpx * 3 + 80))
+""", height=card_h)
 
         st.iframe(PALETTE + f"""
 <style>
@@ -1262,9 +1298,10 @@ body{{background:transparent;padding:4px 0 5px;}}
   align-items:center;justify-content:center;cursor:pointer;
   flex-direction:column;text-align:{fs_align};padding:32px;}}
 #fs-t{{
-  color:#f2ede3;font-weight:700;line-height:1.45;
-  font-size:clamp(28px,8vw,80px);max-width:95%;
+  color:#f2ede3;font-weight:700;line-height:1.55;
+  font-size:clamp(24px,6vw,60px);max-width:95%;
   direction:{tgt_dir};font-family:{tgt_font};
+  word-break:break-word;white-space:pre-wrap;
 }}
 #fs-b{{position:absolute;bottom:0;left:0;right:0;height:4px;
   background:linear-gradient(90deg,#ce1126 0%,#ce1126 33%,#000 33%,#000 66%,#007a3d 66%);}}
@@ -1277,7 +1314,7 @@ body{{background:transparent;padding:4px 0 5px;}}
   <span id="cm">✓</span>
 </div>
 <div id="fs" onclick="closefs()">
-  <div id="fs-t" dir="{tgt_dir}">{esc(ltranslated)}</div>
+  <div id="fs-t" dir="{tgt_dir}">{esc(full_translated)}</div>
   <div id="fs-h">{esc(T("tap_close"))}</div>
   <div id="fs-b"></div>
 </div>
@@ -1300,57 +1337,5 @@ function openfs(){{document.getElementById('fs').style.display='flex';}}
 function closefs(){{document.getElementById('fs').style.display='none';}}
 </script>
 """, height=58)
-
-        older = rows[1:]
-        if older:
-            st.markdown(f"""
-<div style='margin:6px 0 4px;font-size:10px;color:#555;text-align:center;
-  font-family:monospace;letter-spacing:.12em;'>{esc(T("previous"))}</div>
-""", unsafe_allow_html=True)
-
-            h_html = ""
-            for st_txt, sl, sts in older:
-                s_tr   = tr(st_txt, tgt, sl)
-                d2     = dir_attr(tgt)
-                rs2    = rtl_style(tgt)
-                f2     = (
-                    "'Noto Naskh Arabic','Cairo',sans-serif"
-                    if d2 == "rtl" else "'Cairo',sans-serif"
-                )
-                src_d2  = dir_attr(sl)
-                src_rs2 = rtl_style(sl)
-                src_f2  = (
-                    "'Noto Naskh Arabic','Cairo',sans-serif"
-                    if src_d2 == "rtl" else "'Cairo',sans-serif"
-                )
-                show_src2 = (
-                    _norm_for_google(sl) != _norm_for_google(tgt)
-                    and esc(st_txt) != esc(s_tr)
-                )
-                so_d = (
-                    f'<div class="ao" dir="{src_d2}" '
-                    f'style="{src_rs2}font-family:{src_f2};">'
-                    f'{esc(sl).upper()}: {esc(st_txt)}</div>'
-                    if show_src2 else ""
-                )
-                h_html += f"""
-<div class="ac">
-  {so_d}
-  <div class="at" dir="{d2}" style="{rs2}font-family:{f2};">{esc(s_tr)}</div>
-  <div class="ats">🕐 {esc(sts)}</div>
-</div>"""
-
-            st.iframe(PALETTE + f"""
-<style>
-body{{background:transparent;padding:2px 0 20px;}}
-.ac{{background:#0d0d0d;border:1px solid #1e1e1e;border-radius:12px;
-  padding:13px 15px;margin:5px 0;opacity:1;transition:all .2s;}}
-.ac:hover{{border-color:#fd6b4b;box-shadow:0 0 0 1px rgba(253,107,75,.12);}}
-.ao{{font-size:11px;color:#666;font-style:italic;margin-bottom:5px;line-height:1.6;}}
-.at{{font-size:15px;font-weight:600;color:#c8c4bc;line-height:1.7;}}
-.ats{{font-size:10px;color:#555;font-family:'JetBrains Mono',monospace;margin-top:5px;}}
-</style>
-{h_html}
-""", height=min(60 + len(older) * 95, 1800))
 
     live_display()
