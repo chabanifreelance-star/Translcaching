@@ -47,9 +47,9 @@ UI_STRINGS = {
         "back": "← Back",
         "ask_speaker": "Ask the <b>Speaker</b> for the 4-digit room code.<br>Each room is private — only that room's subtitles appear.",
         "speak_now": "SPEAK NOW",
-        "tap_mic": "Tap mic · speak · tap again",
+        "tap_mic": "Tap mic · speak · tap again to send chunk",
         "speaking_lang": "Speaking language",
-        "tap_hint": "🎙️  tap mic · speak · tap again to transcribe",
+        "tap_hint": "🎙️  keep tapping · each recording adds to the live card",
         "home_btn": "← Home",
         "clear_btn": "🗑 Clear",
         "nothing_yet": "Nothing yet — tap the mic above",
@@ -65,12 +65,14 @@ UI_STRINGS = {
         "tap_close": "Tap to close",
         "previous": "─── PREVIOUS ───",
         "font": "font",
-        "segs": "segs",
+        "chunks": "chunks",
         "room": "Room",
         "live_dot": "🔴 Live",
-        "preview_lang": "Preview translation in",
         "live_translation": "LIVE TRANSLATION",
         "original": "Original",
+        "new_card": "🆕 New Card",
+        "streaming": "● streaming",
+        "sealed": "✓ done",
     },
     "fr": {
         "hero_line1": "LIVE",
@@ -92,9 +94,9 @@ UI_STRINGS = {
         "back": "← Retour",
         "ask_speaker": "Demandez le code 4 chiffres au <b>Conférencier</b>.<br>Chaque salle est privée — seuls ses sous-titres apparaissent.",
         "speak_now": "PARLEZ MAINTENANT",
-        "tap_mic": "Appuyez · parlez · appuyez encore",
+        "tap_mic": "Appuyez · parlez · chaque enregistrement s'ajoute",
         "speaking_lang": "Langue de discours",
-        "tap_hint": "🎙️  appuyez · parlez · appuyez encore pour transcrire",
+        "tap_hint": "🎙️  continuez à appuyer · chaque chunk s'ajoute en direct",
         "home_btn": "← Accueil",
         "clear_btn": "🗑 Effacer",
         "nothing_yet": "Rien encore — appuyez sur le micro",
@@ -110,12 +112,14 @@ UI_STRINGS = {
         "tap_close": "Appuyer pour fermer",
         "previous": "─── PRÉCÉDENT ───",
         "font": "police",
-        "segs": "segs",
+        "chunks": "chunks",
         "room": "Salle",
         "live_dot": "🔴 En direct",
-        "preview_lang": "Aperçu de la traduction en",
         "live_translation": "TRADUCTION EN DIRECT",
         "original": "Original",
+        "new_card": "🆕 Nouvelle carte",
+        "streaming": "● diffusion",
+        "sealed": "✓ terminé",
     },
     "ar": {
         "hero_line1": "مباشر",
@@ -137,9 +141,9 @@ UI_STRINGS = {
         "back": "→ رجوع",
         "ask_speaker": "اطلب من <b>المتحدث</b> رمز الغرفة المكون من 4 أرقام.<br>كل غرفة خاصة — تظهر ترجمتها فقط.",
         "speak_now": "تحدث الآن",
-        "tap_mic": "اضغط الميكروفون · تحدث · اضغط مرة أخرى",
+        "tap_mic": "اضغط الميكروفون · كل تسجيل يُضاف للبطاقة الحية",
         "speaking_lang": "لغة الحديث",
-        "tap_hint": "🎙️  اضغط · تحدث · اضغط مجدداً للنسخ",
+        "tap_hint": "🎙️  استمر في الضغط · كل مقطع يُضاف مباشرة",
         "home_btn": "→ الرئيسية",
         "clear_btn": "🗑 مسح",
         "nothing_yet": "لا شيء بعد — اضغط الميكروفون أعلاه",
@@ -155,12 +159,14 @@ UI_STRINGS = {
         "tap_close": "اضغط للإغلاق",
         "previous": "─── السابق ───",
         "font": "خط",
-        "segs": "مقطع",
+        "chunks": "مقطع",
         "room": "غرفة",
         "live_dot": "🔴 مباشر",
-        "preview_lang": "معاينة الترجمة بـ",
         "live_translation": "ترجمة فورية",
         "original": "النص الأصلي",
+        "new_card": "🆕 بطاقة جديدة",
+        "streaming": "● بث مباشر",
+        "sealed": "✓ انتهى",
     },
     "tr": {
         "hero_line1": "CANLI",
@@ -182,9 +188,9 @@ UI_STRINGS = {
         "back": "← Geri",
         "ask_speaker": "<b>Konuşmacıdan</b> 4 haneli oda kodunu isteyin.<br>Her oda özeldir — yalnızca o odanın altyazıları görünür.",
         "speak_now": "KONUŞUN",
-        "tap_mic": "Mikrofona bas · konuş · tekrar bas",
+        "tap_mic": "Mikrofona bas · her kayıt canlı karta eklenir",
         "speaking_lang": "Konuşma dili",
-        "tap_hint": "🎙️  bas · konuş · transkript için tekrar bas",
+        "tap_hint": "🎙️  basmaya devam et · her chunk canlı eklenir",
         "home_btn": "← Ana Sayfa",
         "clear_btn": "🗑 Temizle",
         "nothing_yet": "Henüz bir şey yok — yukarıdaki mikrofona basın",
@@ -200,12 +206,14 @@ UI_STRINGS = {
         "tap_close": "Kapatmak için dokun",
         "previous": "─── ÖNCEKİ ───",
         "font": "yazı tipi",
-        "segs": "bölüm",
+        "chunks": "parça",
         "room": "Oda",
         "live_dot": "🔴 Canlı",
-        "preview_lang": "Çeviriyi önizle",
         "live_translation": "CANLI ÇEVİRİ",
         "original": "Orijinal",
+        "new_card": "🆕 Yeni Kart",
+        "streaming": "● yayında",
+        "sealed": "✓ bitti",
     },
     "es": {
         "hero_line1": "EN VIVO",
@@ -227,9 +235,9 @@ UI_STRINGS = {
         "back": "← Atrás",
         "ask_speaker": "Pide al <b>Orador</b> el código de sala de 4 dígitos.<br>Cada sala es privada — solo aparecen sus subtítulos.",
         "speak_now": "HABLA AHORA",
-        "tap_mic": "Toca el micrófono · habla · toca de nuevo",
+        "tap_mic": "Toca el micrófono · cada grabación se añade en vivo",
         "speaking_lang": "Idioma de habla",
-        "tap_hint": "🎙️  toca · habla · toca de nuevo para transcribir",
+        "tap_hint": "🎙️  sigue tocando · cada chunk se añade en directo",
         "home_btn": "← Inicio",
         "clear_btn": "🗑 Limpiar",
         "nothing_yet": "Nada todavía — toca el micrófono arriba",
@@ -245,12 +253,14 @@ UI_STRINGS = {
         "tap_close": "Toca para cerrar",
         "previous": "─── ANTERIORES ───",
         "font": "fuente",
-        "segs": "segs",
+        "chunks": "partes",
         "room": "Sala",
         "live_dot": "🔴 En vivo",
-        "preview_lang": "Vista previa de traducción en",
         "live_translation": "TRADUCCIÓN EN VIVO",
         "original": "Original",
+        "new_card": "🆕 Nueva tarjeta",
+        "streaming": "● en vivo",
+        "sealed": "✓ listo",
     },
 }
 
@@ -357,18 +367,26 @@ html,body{
 </style>
 """
 
-DB = os.path.join(tempfile.gettempdir(), "lt_pal_v2.db")
+# ── Database ──────────────────────────────────────────────────────────────────
+DB = os.path.join(tempfile.gettempdir(), "lt_pal_v3.db")
 
 def _cx():
     return sqlite3.connect(DB, check_same_thread=False, timeout=10)
 
 def init_db():
     with _cx() as c:
-        c.execute("""CREATE TABLE IF NOT EXISTS rooms(code TEXT PRIMARY KEY, created TEXT NOT NULL)""")
-        c.execute("""CREATE TABLE IF NOT EXISTS seg(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            room TEXT NOT NULL, txt TEXT NOT NULL,
-            lang TEXT DEFAULT '', ts TEXT NOT NULL)""")
+        c.execute("""CREATE TABLE IF NOT EXISTS rooms(
+            code TEXT PRIMARY KEY, created TEXT NOT NULL)""")
+        # card_id groups chunks belonging to one "speaking session"
+        # sealed=1 means the speaker stopped (new card will start next time)
+        c.execute("""CREATE TABLE IF NOT EXISTS chunks(
+            id        INTEGER PRIMARY KEY AUTOINCREMENT,
+            room      TEXT    NOT NULL,
+            card_id   TEXT    NOT NULL,
+            txt       TEXT    NOT NULL,
+            lang      TEXT    DEFAULT '',
+            sealed    INTEGER DEFAULT 0,
+            ts        TEXT    NOT NULL)""")
         c.execute("""CREATE TABLE IF NOT EXISTS rate_limit(
             room TEXT PRIMARY KEY, last_save REAL NOT NULL, count INTEGER DEFAULT 0)""")
         c.commit()
@@ -385,26 +403,24 @@ def room_exists(code):
     with _cx() as c:
         return c.execute("SELECT 1 FROM rooms WHERE code=?", (code,)).fetchone() is not None
 
-def _check_rate_limit(room: str, max_per_minute: int = 30) -> bool:
+def _check_rate_limit(room: str, max_per_minute: int = 60) -> bool:
     now = time.time()
     with _cx() as c:
         row = c.execute("SELECT last_save, count FROM rate_limit WHERE room=?", (room,)).fetchone()
         if row is None:
             c.execute("INSERT INTO rate_limit(room,last_save,count) VALUES(?,?,1)", (room, now))
-            c.commit()
-            return True
+            c.commit(); return True
         last_save, count = row
         if now - last_save > 60:
             c.execute("UPDATE rate_limit SET last_save=?, count=1 WHERE room=?", (now, room))
-            c.commit()
-            return True
+            c.commit(); return True
         if count >= max_per_minute:
             return False
         c.execute("UPDATE rate_limit SET count=count+1 WHERE room=?", (room,))
-        c.commit()
-        return True
+        c.commit(); return True
 
-def db_save(room, txt, lang):
+def chunk_save(room: str, card_id: str, txt: str, lang: str) -> bool:
+    """Append a chunk to an open card."""
     try:
         if not _check_rate_limit(room):
             return False
@@ -412,38 +428,53 @@ def db_save(room, txt, lang):
         if not clean:
             return False
         with _cx() as c:
-            c.execute("INSERT INTO seg(room,txt,lang,ts) VALUES(?,?,?,?)",
-                      (room, clean, lang, datetime.now().strftime("%H:%M")))
+            c.execute(
+                "INSERT INTO chunks(room,card_id,txt,lang,sealed,ts) VALUES(?,?,?,?,0,?)",
+                (room, card_id, clean, lang, datetime.now().strftime("%H:%M")))
             c.commit()
         return True
     except Exception:
         return False
 
-def db_all(room, limit=40):
+def card_seal(room: str, card_id: str):
+    """Mark every chunk of this card as sealed (speaker stopped)."""
+    try:
+        with _cx() as c:
+            c.execute("UPDATE chunks SET sealed=1 WHERE room=? AND card_id=?", (room, card_id))
+            c.commit()
+    except Exception:
+        pass
+
+def cards_get(room: str, limit: int = 8):
+    """
+    Return cards newest-first.
+    Each card: (card_id, [(txt, lang, ts), ...], sealed)
+    """
     try:
         if not re.fullmatch(r"[0-9]{4}", room or ""):
             return []
         with _cx() as c:
-            return c.execute(
-                "SELECT txt,lang,ts FROM seg WHERE room=? ORDER BY id DESC LIMIT ?",
+            # get distinct card_ids ordered by their latest chunk, newest first
+            card_ids = c.execute(
+                """SELECT card_id, MAX(id) as mx, MAX(sealed) as s
+                   FROM chunks WHERE room=?
+                   GROUP BY card_id ORDER BY mx DESC LIMIT ?""",
                 (room, limit)).fetchall()
+            result = []
+            for cid, _, sealed in card_ids:
+                rows = c.execute(
+                    "SELECT txt,lang,ts FROM chunks WHERE room=? AND card_id=? ORDER BY id ASC",
+                    (room, cid)).fetchall()
+                result.append((cid, rows, bool(sealed)))
+            return result
     except Exception:
         return []
 
-def db_count(room):
-    try:
-        if not re.fullmatch(r"[0-9]{4}", room or ""):
-            return 0
-        with _cx() as c:
-            return c.execute("SELECT COUNT(*) FROM seg WHERE room=?", (room,)).fetchone()[0]
-    except Exception:
-        return 0
-
-def db_clear(room):
+def db_clear(room: str):
     if not re.fullmatch(r"[0-9]{4}", room or ""):
         return
     with _cx() as c:
-        c.execute("DELETE FROM seg WHERE room=?", (room,))
+        c.execute("DELETE FROM chunks WHERE room=?", (room,))
         c.commit()
 
 def gen_code():
@@ -451,61 +482,50 @@ def gen_code():
 
 init_db()
 
+# ── Whisper ───────────────────────────────────────────────────────────────────
 @st.cache_resource(show_spinner=False)
 def get_whisper_base():
-    """Small model for non-Arabic languages."""
     try:
         from faster_whisper import WhisperModel
-        try:
-            return WhisperModel("small", device="cuda", compute_type="float16")
-        except Exception:
-            return WhisperModel("small", device="cpu", compute_type="int8")
-    except Exception:
-        return None
+        try:    return WhisperModel("small", device="cuda", compute_type="float16")
+        except: return WhisperModel("small", device="cpu",  compute_type="int8")
+    except: return None
 
 @st.cache_resource(show_spinner=False)
 def get_whisper_arabic():
-    """Small model for Arabic — fast enough for real-time use, pinned to language='ar'."""
     try:
         from faster_whisper import WhisperModel
-        try:
-            return WhisperModel("small", device="cuda", compute_type="float16")
-        except Exception:
-            return WhisperModel("small", device="cpu", compute_type="int8")
-    except Exception:
-        return None
+        try:    return WhisperModel("small", device="cuda", compute_type="float16")
+        except: return WhisperModel("small", device="cpu",  compute_type="int8")
+    except: return None
 
 _AR_HALLUCINATIONS = {
-    "شكراً", "شكرا", "شكراً للمشاهدة", "شكرا للمشاهدة",
-    "للمشاهدة", "للاستماع", "مع السلامة", "إلى اللقاء",
-    "أراكم في الحلقة القادمة", "تابعونا", "اشتركوا في القناة",
-    "سبحان الله", "بسم الله الرحمن الرحيم", ".", "..", "...", " ", "",
+    "شكراً","شكرا","شكراً للمشاهدة","شكرا للمشاهدة",
+    "للمشاهدة","للاستماع","مع السلامة","إلى اللقاء",
+    "أراكم في الحلقة القادمة","تابعونا","اشتركوا في القناة",
+    "سبحان الله","بسم الله الرحمن الرحيم","."," .","..","..."," ","",
 }
 
 def _is_hallucination(text: str, lang_code: str) -> bool:
     t = text.strip()
-    if not t or len(t) < 2:
-        return True
+    if not t or len(t) < 2: return True
     if lang_code == "ar":
-        if t in _AR_HALLUCINATIONS:
-            return True
-        ar_chars = sum(1 for c in t if '\u0600' <= c <= '\u06FF')
-        if len(t) > 0 and ar_chars == 0:
-            return True
+        if t in _AR_HALLUCINATIONS: return True
+        if sum(1 for c in t if '\u0600' <= c <= '\u06FF') == 0: return True
     return False
 
-def transcribe(audio_bytes: bytes, lang_code: str, room: str = None):
+def transcribe(audio_bytes: bytes, lang_code: str, room: str, card_id: str):
     """
-    Transcribe audio. When `room` is provided, each segment is saved to the DB
-    as soon as faster-whisper yields it — so audience sees text in near real-time.
-    Returns (full_text, lang_code).
+    Transcribe audio; each Whisper segment is saved to DB immediately
+    so the audience sees words growing in the live card in real-time.
+    Returns full text.
     """
     is_arabic = lang_code == "ar"
     model = get_whisper_arabic() if is_arabic else get_whisper_base()
     if not model:
         model = get_whisper_base()
     if not model:
-        return "", lang_code
+        return ""
     tmp = None
     try:
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
@@ -513,84 +533,68 @@ def transcribe(audio_bytes: bytes, lang_code: str, room: str = None):
         if is_arabic:
             segs, _ = model.transcribe(
                 tmp, task="transcribe", language="ar",
-                beam_size=1, best_of=1,
-                temperature=0.0,
+                beam_size=1, best_of=1, temperature=0.0,
                 condition_on_previous_text=False,
                 no_speech_threshold=0.6,
                 compression_ratio_threshold=2.0,
                 log_prob_threshold=-0.8,
                 vad_filter=True,
-                vad_parameters={"min_silence_duration_ms": 300, "speech_pad_ms": 200, "threshold": 0.45},
+                vad_parameters={"min_silence_duration_ms":300,"speech_pad_ms":200,"threshold":0.45},
                 initial_prompt="هذا نص باللغة العربية الفصحى.",
             )
             parts = []
             for s in segs:
                 txt = s.text.strip()
-                if _is_hallucination(txt, "ar"):
-                    continue
-                if hasattr(s, 'avg_logprob') and s.avg_logprob < -1.0:
-                    continue
-                if hasattr(s, 'compression_ratio') and s.compression_ratio > 2.4:
-                    continue
+                if _is_hallucination(txt, "ar"): continue
+                if hasattr(s,'avg_logprob') and s.avg_logprob < -1.0: continue
+                if hasattr(s,'compression_ratio') and s.compression_ratio > 2.4: continue
                 parts.append(txt)
-                # ── Real-time: push each segment to DB immediately ──
-                if room:
-                    db_save(room, txt, lang_code)
-            return " ".join(parts).strip(), lang_code
+                chunk_save(room, card_id, txt, lang_code)
+            return " ".join(parts).strip()
         else:
             segs, _ = model.transcribe(
                 tmp, task="transcribe", language=lang_code,
                 beam_size=5, vad_filter=True,
                 condition_on_previous_text=False,
-                vad_parameters={"min_silence_duration_ms": 400},
+                vad_parameters={"min_silence_duration_ms":400},
             )
             parts = []
             for s in segs:
                 txt = s.text.strip()
-                if not txt:
-                    continue
+                if not txt: continue
                 parts.append(txt)
-                # ── Real-time: push each segment to DB immediately ──
-                if room:
-                    db_save(room, txt, lang_code)
-            return " ".join(parts).strip(), lang_code
+                chunk_save(room, card_id, txt, lang_code)
+            return " ".join(parts).strip()
     except Exception:
-        return "", lang_code
+        return ""
     finally:
         if tmp:
             try: os.unlink(tmp)
             except: pass
 
-
-_LANG_MAP = {"zh-cn": "zh-CN", "zh-tw": "zh-TW", "ar": "ar", "he": "iw"}
+# ── Translation ───────────────────────────────────────────────────────────────
+_LANG_MAP = {"zh-cn":"zh-CN","zh-tw":"zh-TW","ar":"ar","he":"iw"}
 
 def _norm_for_google(code: str) -> str:
     c = (code or "").strip()
     low = c.lower()
-    if low in _LANG_MAP:
-        return _LANG_MAP[low]
-    if low.startswith("zh"):
-        return c
+    if low in _LANG_MAP: return _LANG_MAP[low]
+    if low.startswith("zh"): return c
     return low.split("-")[0]
 
 _TR_CACHE: dict = {}
 _TR_CACHE_MAX = 2000
 
 def tr(text: str, target: str, source: str) -> str:
-    """Translate. Uses source=auto for Arabic to handle all dialects correctly."""
-    if not text or not text.strip():
-        return text
+    if not text or not text.strip(): return text
     src = _norm_for_google(source)
     tgt = _norm_for_google(target)
-    if src == tgt:
-        return text
+    if src == tgt: return text
     cache_key = (text[:200], src, tgt)
-    if cache_key in _TR_CACHE:
-        return _TR_CACHE[cache_key]
+    if cache_key in _TR_CACHE: return _TR_CACHE[cache_key]
     try:
         from deep_translator import GoogleTranslator
-        # Arabic dialects (Egyptian, Gulf, Levantine…) translate better with auto-detect
-        use_src = "auto" if src in ("ar", "iw", "fa", "ur") else src
+        use_src = "auto" if src in ("ar","iw","fa","ur") else src
         result = GoogleTranslator(source=use_src, target=tgt).translate(text)
         if not result or not result.strip():
             result = GoogleTranslator(source=src, target=tgt).translate(text)
@@ -598,44 +602,43 @@ def tr(text: str, target: str, source: str) -> str:
     except Exception:
         translated = text
     if len(_TR_CACHE) >= _TR_CACHE_MAX:
-        oldest = next(iter(_TR_CACHE))
-        del _TR_CACHE[oldest]
+        del _TR_CACHE[next(iter(_TR_CACHE))]
     _TR_CACHE[cache_key] = translated
     return translated
 
+# ── Language lists ────────────────────────────────────────────────────────────
 SPEAKER_LANGS = {
     "🇬🇧 English": "en",
     "🇸🇦 Arabic":  "ar",
 }
 
 AUDIENCE_LANGS = {
-    "🇸🇦 Arabic":     "ar",  "🇬🇧 English":   "en",
-    "🇫🇷 French":     "fr",  "🇪🇸 Spanish":   "es",
-    "🇩🇪 German":     "de",  "🇹🇷 Turkish":   "tr",
-    "🇮🇹 Italian":    "it",  "🇨🇳 Chinese":   "zh-CN",
-    "🇷🇺 Russian":    "ru",  "🇯🇵 Japanese":  "ja",
-    "🇧🇷 Portuguese": "pt",  "🇮🇳 Hindi":     "hi",
-    "🇰🇷 Korean":     "ko",  "🇳🇱 Dutch":     "nl",
-    "🇵🇱 Polish":     "pl",  "🇸🇪 Swedish":   "sv",
-    "🇬🇷 Greek":      "el",  "🇹🇭 Thai":      "th",
-    "🇻🇳 Vietnamese": "vi",  "🇺🇦 Ukrainian": "uk",
-    "🇮🇩 Indonesian": "id",
+    "🇸🇦 Arabic":"ar",     "🇬🇧 English":"en",
+    "🇫🇷 French":"fr",     "🇪🇸 Spanish":"es",
+    "🇩🇪 German":"de",     "🇹🇷 Turkish":"tr",
+    "🇮🇹 Italian":"it",    "🇨🇳 Chinese":"zh-CN",
+    "🇷🇺 Russian":"ru",    "🇯🇵 Japanese":"ja",
+    "🇧🇷 Portuguese":"pt", "🇮🇳 Hindi":"hi",
+    "🇰🇷 Korean":"ko",     "🇳🇱 Dutch":"nl",
+    "🇵🇱 Polish":"pl",     "🇸🇪 Swedish":"sv",
+    "🇬🇷 Greek":"el",      "🇹🇭 Thai":"th",
+    "🇻🇳 Vietnamese":"vi", "🇺🇦 Ukrainian":"uk",
+    "🇮🇩 Indonesian":"id",
 }
 
+# ── Session state defaults ────────────────────────────────────────────────────
 DEFAULTS = {
-    "page":           "home",
-    "room_code":      None,
-    "last_hash":      None,
-    "last_txt":       "",
-    "last_lang":      "",
-    "last_translated": {},   # dict: target_lang -> translated text
-    "spk_lang":       "en",
-    "spk_preview_lang": "ar",   # language the speaker wants to preview translation in
-    "aud_lang":       "ar",
-    "aud_fpx":        28,
-    "aud_rate":       1,
-    "join_error":     "",
-    "ui_lang":        "en",
+    "page":        "home",
+    "room_code":   None,
+    "last_hash":   None,
+    # card_id: groups chunks from one continuous speaking session
+    # Reset to None → next recording starts a new card
+    "card_id":     None,
+    "spk_lang":    "en",
+    "aud_lang":    "ar",
+    "aud_fpx":     28,
+    "join_error":  "",
+    "ui_lang":     "en",
 }
 for k, v in DEFAULTS.items():
     if k not in st.session_state:
@@ -647,50 +650,34 @@ def go(page, **kw):
         st.session_state[k] = v
     st.rerun()
 
+# ── UI language toggle ────────────────────────────────────────────────────────
 UI_LANG_OPTIONS = [
-    ("🇬🇧 EN", "en"),
-    ("🇫🇷 FR", "fr"),
-    ("🇸🇦 AR", "ar"),
-    ("🇹🇷 TR", "tr"),
-    ("🇪🇸 ES", "es"),
+    ("🇬🇧 EN","en"),("🇫🇷 FR","fr"),("🇸🇦 AR","ar"),("🇹🇷 TR","tr"),("🇪🇸 ES","es"),
 ]
 
 def render_lang_toggle():
-    """Single toggle button that cycles through UI languages. Home page only."""
-    codes = [code for _, code in UI_LANG_OPTIONS]
-    labels = [label for label, _ in UI_LANG_OPTIONS]
-    cur = st.session_state.ui_lang
-    cur_idx = codes.index(cur) if cur in codes else 0
-    cur_label = labels[cur_idx]
-    next_idx = (cur_idx + 1) % len(codes)
-    next_label = labels[next_idx]
-
+    codes  = [c for _,c in UI_LANG_OPTIONS]
+    labels = [l for l,_ in UI_LANG_OPTIONS]
+    cur    = st.session_state.ui_lang
+    cur_i  = codes.index(cur) if cur in codes else 0
+    nxt_i  = (cur_i + 1) % len(codes)
     st.markdown("""<div style='height:6px'></div>""", unsafe_allow_html=True)
-    st.markdown(f"""<style>
-div[data-testid="stButton"][key="lang_toggle"] .stButton>button,
-.lang-toggle-btn .stButton>button{{
-  border-color:#007a3d!important;
-  background:rgba(0,122,61,.13)!important;
-  color:#00c65e!important;
-  font-size:12px!important;
-  letter-spacing:.12em!important;
-}}
-</style>""", unsafe_allow_html=True)
-
-    col_l, col_btn, col_r = st.columns([3, 2, 3])
+    col_l, col_btn, col_r = st.columns([3,2,3])
     with col_btn:
-        if st.button(f"{cur_label}  →  {next_label}", key="lang_toggle", use_container_width=True):
-            st.session_state.ui_lang = codes[next_idx]
+        if st.button(f"{labels[cur_i]}  →  {labels[nxt_i]}", key="lang_toggle", use_container_width=True):
+            st.session_state.ui_lang = codes[nxt_i]
             st.rerun()
     st.markdown("""<div class='pal-divider'></div>""", unsafe_allow_html=True)
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# HOME
+# ══════════════════════════════════════════════════════════════════════════════
 if st.session_state.page == "home":
 
     render_lang_toggle()
-
     rtl = is_rtl_ui()
-    ui_dir = "rtl" if rtl else "ltr"
+    ui_dir   = "rtl" if rtl else "ltr"
     ui_align = "right" if rtl else "center"
 
     st.iframe(PALETTE + f"""
@@ -701,10 +688,10 @@ body{{
   direction:{ui_dir};
 }}
 .kufic{{
-  font-family:{'\'Noto Naskh Arabic\',\'Cairo\'' if rtl else '\'Bebas Neue\''};
-  font-size:clamp({'44px,11vw,80px' if rtl else '60px,15vw,108px'});
-  line-height:.85;letter-spacing:{'.02em' if rtl else '.03em'};
-  font-weight:{'900' if rtl else 'normal'};
+  font-family:{("'Noto Naskh Arabic','Cairo'" if rtl else "'Bebas Neue'")};
+  font-size:clamp({("44px,11vw,80px" if rtl else "60px,15vw,108px")});
+  line-height:.85;letter-spacing:{(".02em" if rtl else ".03em")};
+  font-weight:{("900" if rtl else "normal")};
 }}
 .live-word{{
   background:linear-gradient(135deg,#ff3348 0%,#fd6b4b 45%,#fff 100%);
@@ -715,7 +702,7 @@ body{{
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
 }}
 .sub{{font-size:11px;color:#666;letter-spacing:.14em;text-transform:uppercase;
-  margin-top:12px;font-family:{'\'Noto Naskh Arabic\',\'Cairo\'' if rtl else '\'JetBrains Mono\',monospace'};}}
+  margin-top:12px;font-family:{("'Noto Naskh Arabic','Cairo'" if rtl else "'JetBrains Mono',monospace")};}}
 .pal-bar{{
   display:flex;width:86%;max-width:310px;height:4px;border-radius:4px;
   overflow:hidden;margin:14px auto 0;
@@ -739,7 +726,6 @@ body{{
 """, height=220)
 
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-
     col1, col2 = st.columns(2, gap="small")
     with col1:
         if st.button(T("speaker_btn"), key="btn_spk", use_container_width=True):
@@ -755,6 +741,9 @@ body{{
 </div>""", unsafe_allow_html=True)
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# SPEAKER SETUP
+# ══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "speaker_setup":
 
     if not st.session_state.room_code:
@@ -763,7 +752,7 @@ elif st.session_state.page == "speaker_setup":
         st.session_state.room_code = code
 
     code = st.session_state.room_code
-    rtl = is_rtl_ui()
+    rtl  = is_rtl_ui()
     ui_dir = "rtl" if rtl else "ltr"
 
     st.iframe(PALETTE + f"""
@@ -794,9 +783,7 @@ body{{
   padding:2px;border-radius:24px;
   background:linear-gradient(135deg,#ce1126,#000 40%,#007a3d);
 }}
-.box{{
-  background:#060606;border-radius:22px;padding:22px 40px 16px;
-}}
+.box{{background:#060606;border-radius:22px;padding:22px 40px 16px;}}
 .code{{
   font-family:'Bebas Neue',sans-serif;
   font-size:clamp(88px,24vw,136px);
@@ -816,15 +803,13 @@ body{{
 """, height=212)
 
     st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-
     c1, c2 = st.columns(2, gap="small")
     with c1:
         if st.button(T("enter_speak"), key="spk_enter", use_container_width=True):
             go("speaker")
     with c2:
         if st.button(T("new_code"), key="spk_newcode", use_container_width=True):
-            c = gen_code()
-            room_create(c)
+            c = gen_code(); room_create(c)
             st.session_state.room_code = c
             st.rerun()
 
@@ -833,9 +818,12 @@ body{{
         go("home", room_code=None)
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# AUDIENCE JOIN
+# ══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "audience_join":
 
-    rtl = is_rtl_ui()
+    rtl    = is_rtl_ui()
     ui_dir = "rtl" if rtl else "ltr"
 
     st.iframe(PALETTE + f"""
@@ -855,7 +843,6 @@ body{{padding:16px 16px 6px;background:transparent;direction:{ui_dir};}}
 """, height=86)
 
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-
     code_input = st.text_input("ROOM CODE", max_chars=4, placeholder="1234", key="aud_code_field")
 
     if st.session_state.join_error:
@@ -867,7 +854,6 @@ body{{padding:16px 16px 6px;background:transparent;direction:{ui_dir};}}
 </div>""", unsafe_allow_html=True)
 
     st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
-
     j1, j2 = st.columns(2, gap="small")
     with j1:
         if st.button(T("join_btn"), key="aud_join_btn", use_container_width=True):
@@ -909,16 +895,19 @@ body{{padding:12px 0;background:transparent;direction:{ask_dir};}}
 """, height=128)
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# SPEAKER
+# ══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "speaker":
 
     if not st.session_state.room_code:
         go("speaker_setup")
 
-    room = st.session_state.room_code
-    rtl = is_rtl_ui()
+    room   = st.session_state.room_code
+    rtl    = is_rtl_ui()
     ui_dir = "rtl" if rtl else "ltr"
 
-    nl, nr = st.columns([3, 1], gap="small")
+    nl, nr = st.columns([3,1], gap="small")
     with nl:
         st.iframe(PALETTE + f"""
 <style>
@@ -929,7 +918,8 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
   background:linear-gradient(140deg,#f2ede3 30%,#fd6b4b 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
 }}
-.sub{{font-size:10px;color:#3a3a3a;letter-spacing:.12em;text-transform:uppercase;margin-top:6px;font-family:'Cairo',sans-serif;}}
+.sub{{font-size:10px;color:#3a3a3a;letter-spacing:.12em;text-transform:uppercase;
+  margin-top:6px;font-family:'Cairo',sans-serif;}}
 .badge{{
   display:inline-flex;align-items:center;gap:5px;
   background:rgba(253,107,75,.1);border:1px solid rgba(253,107,75,.25);
@@ -954,10 +944,19 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
     )
     st.session_state.spk_lang = SPEAKER_LANGS[spk_label]
 
+    # ── How chunking works ────────────────────────────────────────────────────
+    # card_id is set when a recording arrives and cleared (→ None) when the
+    # speaker clicks "New Card" or clears history.
+    # Each mic tap appends to the SAME card_id so the audience sees one
+    # growing card for the whole speaking session.
+    # "New Card" button seals the current card and resets card_id so the
+    # next recording starts a fresh card.
+
     st.markdown(f"""
-<div style='font-size:11px;color:#2a2a2a;letter-spacing:.1em;text-transform:uppercase;
-  font-family:monospace;text-align:center;padding:6px 0 2px;'>
-  {esc(T("tap_hint"))}
+<div style='background:rgba(0,122,61,.07);border:1px solid rgba(0,198,94,.12);
+  border-radius:12px;padding:10px 14px;font-size:11px;color:#2a7a4a;
+  text-align:center;font-family:monospace;letter-spacing:.05em;margin:4px 0 6px;'>
+  🎙️ {esc(T("tap_hint"))}
 </div>""", unsafe_allow_html=True)
 
     rec = st.audio_input("mic", key="mic_input", label_visibility="collapsed")
@@ -968,20 +967,29 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
         if h != st.session_state.last_hash:
             st.session_state.last_hash = h
             lang_code = st.session_state.spk_lang
+
+            # If no active card, create one
+            if not st.session_state.card_id:
+                st.session_state.card_id = datetime.now().strftime("%Y%m%d%H%M%S%f")
+
+            card_id = st.session_state.card_id
+
             with st.spinner("Transcribing…"):
-                # Pass room so each segment is saved to DB as soon as it's ready
-                txt, lang = transcribe(audio_bytes, lang_code, room=room)
+                txt = transcribe(audio_bytes, lang_code, room=room, card_id=card_id)
+
             if txt:
-                # Segments already saved inside transcribe(); just update UI state
-                st.session_state.last_txt  = txt
-                st.session_state.last_lang = lang
                 st.rerun()
             else:
                 st.warning("⚠️ No speech detected — try again.")
 
-    n = db_count(room)
-    s1, s2 = st.columns([4, 1], gap="small")
+    # Controls row
+    s1, s2, s3 = st.columns([3, 2, 2], gap="small")
     with s1:
+        cards_data = cards_get(room, 1)
+        active_card = cards_data[0] if cards_data else None
+        chunk_count = len(active_card[1]) if active_card and not active_card[2] else 0
+        status_txt = T("streaming") if (active_card and not active_card[2]) else T("sealed")
+        status_col = "#00c65e" if (active_card and not active_card[2]) else "#555"
         st.iframe(f"""
 <style>
 @keyframes dp{{0%,100%{{opacity:1}}50%{{opacity:.25}}}}
@@ -989,82 +997,96 @@ body{{margin:0;padding:3px 0;background:transparent;}}
 </style>
 <div style='display:flex;align-items:center;gap:8px;padding:10px 14px;
   background:#060606;border:1px solid #161616;border-radius:10px;
-  font-size:12px;font-family:monospace;'>
-  <span style='width:8px;height:8px;border-radius:50%;background:#00c65e;
+  font-size:11px;font-family:monospace;'>
+  <span style='width:7px;height:7px;border-radius:50%;background:{status_col};
     box-shadow:0 0 0 3px rgba(0,198,94,.18);
     animation:dp 1.4s infinite;flex-shrink:0;display:inline-block;'></span>
   <span style='color:#f2ede3;'>
-    <b>{n}</b> {esc(T("segs"))} · <b>{esc(st.session_state.spk_lang.upper())}</b> · {esc(T("room"))} <b>{esc(room)}</b>
+    <b>{chunk_count}</b> {esc(T("chunks"))} · {esc(status_txt)} · {esc(T("room"))} <b>{esc(room)}</b>
   </span>
-</div>""", height=46)
+</div>""", height=44)
     with s2:
+        if st.button(T("new_card"), key="new_card_btn", use_container_width=True):
+            # Seal current card and reset so next recording starts fresh
+            if st.session_state.card_id:
+                card_seal(room, st.session_state.card_id)
+            st.session_state.card_id = None
+            st.rerun()
+    with s3:
         if st.button(T("clear_btn"), key="clr_btn", use_container_width=True):
             db_clear(room)
-            st.session_state.last_txt = ""
+            st.session_state.card_id = None
             st.rerun()
 
-    rows = db_all(room, 60)
-    if not rows:
+    # Show speaker's own transcript cards (newest first)
+    all_cards = cards_get(room, 6)
+    if not all_cards:
         st.iframe(PALETTE + f"""
 <style>body{{padding:28px 0;text-align:center;background:transparent;}}</style>
 <div style='font-size:38px;margin-bottom:8px;'>🎙️</div>
-<div style='font-size:13px;color:#2a2a2a;font-family:"Cairo",sans-serif;'>{esc(T("nothing_yet"))}</div>
+<div style='font-size:13px;color:#2a2a2a;font-family:"Cairo",sans-serif;'>
+  {esc(T("nothing_yet"))}</div>
 """, height=90)
     else:
-        cards = ""
-        for i, (txt, lang, ts) in enumerate(rows):
-            safe_txt  = esc(txt)
-            safe_lang = esc((lang or "??").upper())
-            safe_ts   = esc(ts)
-            d   = dir_attr(lang)
-            rs  = rtl_style(lang)
-            txt_font = ("'Noto Naskh Arabic','Cairo',sans-serif"
+        cards_html = ""
+        for i, (cid, chunk_rows, sealed) in enumerate(all_cards):
+            full_txt = " ".join(r[0] for r in chunk_rows if r[0].strip())
+            lang     = chunk_rows[0][1] if chunk_rows else ""
+            ts       = chunk_rows[-1][2] if chunk_rows else ""
+            d        = dir_attr(lang)
+            rs       = rtl_style(lang)
+            tf       = ("'Noto Naskh Arabic','Cairo',sans-serif"
                         if dir_attr(lang) == "rtl" else "'Cairo',sans-serif")
-            new = i == 0
-            is_rtl_seg = dir_attr(lang) == "rtl"
-            bl  = ("border-right:3px solid #fd6b4b;" if is_rtl_seg else "border-left:3px solid #fd6b4b;") if new else ""
-            bg  = "background:linear-gradient(135deg,rgba(253,107,75,.06),#080808 55%);" if new else ""
-            an  = "animation:sl .35s ease;" if new else ""
-            nt  = '<span class="ntag">NEW</span>' if new else ""
-            cards += f"""
-<div class="hc" style="{bl}{bg}{an}">
+            is_live  = (i == 0 and not sealed)
+            border   = "border-left:3px solid #fd6b4b;" if is_live and d == "ltr" else \
+                       ("border-right:3px solid #fd6b4b;" if is_live else "")
+            bg       = "background:linear-gradient(135deg,rgba(253,107,75,.06),#080808 55%);" if is_live else ""
+            badge    = f'<span class="ltag live">● LIVE</span>' if is_live else \
+                       f'<span class="ltag done">✓</span>'
+            n_chunks = len(chunk_rows)
+            cards_html += f"""
+<div class="hc" style="{border}{bg}">
   <div class="meta">
-    <span class="ts">🕐 {safe_ts}</span>
-    <span class="ltag">{safe_lang}</span>{nt}
+    <span class="ts">🕐 {esc(ts)}</span>
+    <span class="ltag lang">{esc((lang or "??").upper())}</span>
+    {badge}
+    <span class="ts">{n_chunks} {esc(T("chunks"))}</span>
   </div>
-  <div class="htxt" dir="{d}" style="{rs}font-family:{txt_font};unicode-bidi:embed;">{safe_txt}</div>
+  <div class="htxt" dir="{d}" style="{rs}font-family:{tf};">{esc(full_txt)}</div>
 </div>"""
+
         st.iframe(PALETTE + f"""
 <style>
 body{{background:transparent;padding:4px 0 24px;}}
-@keyframes sl{{from{{opacity:.1;transform:translateY(-6px)}}to{{opacity:1;transform:none}}}}
 .hc{{background:#070707;border:1px solid #161616;border-radius:14px;
   padding:14px 16px;margin:5px 0;transition:border-color .2s;}}
 .hc:hover{{border-color:#252525;}}
 .meta{{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:7px;}}
 .ts{{font-family:'JetBrains Mono',monospace;font-size:10px;color:#2a2a2a;}}
-.ltag{{background:rgba(0,198,94,.08);color:#00c65e;border:1px solid rgba(0,198,94,.2);
-  border-radius:5px;padding:1px 8px;font-size:9px;font-weight:700;
+.ltag{{border-radius:5px;padding:1px 8px;font-size:9px;font-weight:700;
   letter-spacing:.1em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;}}
-.ntag{{background:rgba(253,107,75,.1);color:#ff8a6a;border:1px solid rgba(253,107,75,.25);
-  border-radius:5px;padding:1px 8px;font-size:9px;font-weight:700;
-  letter-spacing:.1em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;}}
-.htxt{{font-size:16px;font-weight:600;color:#f2ede3;line-height:1.65;}}
+.ltag.lang{{background:rgba(0,198,94,.08);color:#00c65e;border:1px solid rgba(0,198,94,.2);}}
+.ltag.live{{background:rgba(253,107,75,.1);color:#ff8a6a;border:1px solid rgba(253,107,75,.25);}}
+.ltag.done{{background:rgba(85,85,85,.1);color:#555;border:1px solid rgba(85,85,85,.2);}}
+.htxt{{font-size:15px;font-weight:600;color:#f2ede3;line-height:1.65;}}
 </style>
-{cards}
-""", height=min(80 + len(rows) * 90, 2400))
+{cards_html}
+""", height=min(80 + len(all_cards) * 110, 2200))
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# AUDIENCE
+# ══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "audience":
 
     if not st.session_state.room_code:
         go("audience_join")
 
-    room = st.session_state.room_code
-    rtl = is_rtl_ui()
+    room   = st.session_state.room_code
+    rtl    = is_rtl_ui()
     ui_dir = "rtl" if rtl else "ltr"
 
-    al, ar_ = st.columns([3, 1], gap="small")
+    al, ar_ = st.columns([3,1], gap="small")
     with al:
         st.iframe(PALETTE + f"""
 <style>
@@ -1093,7 +1115,7 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
         if st.button(T("home_btn"), key="aud_home", use_container_width=True):
             go("home", room_code=None)
 
-    c1, c2 = st.columns([3, 1], gap="small")
+    c1, c2 = st.columns([3,1], gap="small")
     with c1:
         lc_sel = st.selectbox(
             T("language"),
@@ -1104,31 +1126,12 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
         )
         st.session_state.aud_lang = AUDIENCE_LANGS[lc_sel]
     with c2:
-        rate = st.selectbox(
-            T("refresh"),
-            [1, 2, 3, 5, 8],
-            index=0,
-            format_func=lambda x: f"↺{x}s",
-            label_visibility="collapsed",
-            key="aud_rate_sel",
-        )
-        st.session_state.aud_rate = rate
-
-    f1, f2, f3 = st.columns([1, 2, 1], gap="small")
-    with f1:
         if st.button("A−", key="fdn", use_container_width=True):
             st.session_state.aud_fpx = max(16, st.session_state.aud_fpx - 4)
-    with f2:
-        fpx = st.session_state.aud_fpx
-        st.markdown(f"""
-<div style='text-align:center;font-size:12px;color:#3a3a3a;
-  font-family:monospace;padding:9px 0;'>
-  {esc(T("font"))} <b style='color:#555;'>{fpx}px</b>
-</div>""", unsafe_allow_html=True)
-    with f3:
         if st.button("A+", key="fup", use_container_width=True):
             st.session_state.aud_fpx = min(64, st.session_state.aud_fpx + 4)
 
+    # Wake lock
     st.iframe("""<script>
 (async()=>{
   if('wakeLock' in navigator){
@@ -1141,152 +1144,140 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
 })();
 </script>""", height=1)
 
-    @st.fragment(run_every=st.session_state.aud_rate)
+    # ── Live display — polls every 1 second ───────────────────────────────────
+    @st.fragment(run_every=1)
     def live_display():
-        tgt       = st.session_state.aud_lang
-        fpx       = st.session_state.aud_fpx
-        rows      = db_all(room, 25)
-        n         = db_count(room)
-        tgt_dir   = dir_attr(tgt)
-        tgt_style = rtl_style(tgt)
-        tgt_font  = (
-            "'Noto Naskh Arabic','Cairo',sans-serif"
-            if tgt_dir == "rtl" else "'Cairo',sans-serif"
-        )
+        tgt      = st.session_state.aud_lang
+        fpx      = st.session_state.aud_fpx
+        tgt_dir  = dir_attr(tgt)
+        tgt_sty  = rtl_style(tgt)
+        tgt_font = ("'Noto Naskh Arabic','Cairo',sans-serif"
+                    if tgt_dir == "rtl" else "'Cairo',sans-serif")
+        fs_align = "right" if tgt_dir == "rtl" else "left"
 
+        all_cards = cards_get(room, 6)
+
+        # Status bar
+        live_card = next((c for c in all_cards if not c[2]), None)
+        is_live   = live_card is not None
+        dot_col   = "#00c65e" if is_live else "#333"
+        dot_anim  = "dp 1.2s infinite" if is_live else "none"
+        status_lbl = T("streaming") if is_live else T("waiting")
         st.iframe(f"""
 <style>
-@keyframes dp{{0%,100%{{opacity:1}}50%{{opacity:.2}}}}
+@keyframes dp{{0%,100%{{opacity:1}}50%{{opacity:.15}}}}
 body{{margin:0;padding:2px 0;background:transparent;}}
 </style>
 <div style='display:flex;align-items:center;gap:7px;padding:8px 13px;
   background:#060606;border:1px solid #161616;border-radius:10px;
   font-size:11px;font-family:monospace;'>
-  <span style='width:7px;height:7px;border-radius:50%;background:#00c65e;
+  <span style='width:7px;height:7px;border-radius:50%;background:{dot_col};
     box-shadow:0 0 0 3px rgba(0,198,94,.15);
-    animation:dp 1.4s infinite;flex-shrink:0;display:inline-block;'></span>
+    animation:{dot_anim};flex-shrink:0;display:inline-block;'></span>
   <span style='color:#f2ede3;'>
-    {esc(T("live_dot"))} · <b>{n}</b> {esc(T("segs"))} · {esc(T("room"))} <b>{esc(room)}</b> · <b>{esc(tgt.upper())}</b> · ↺{st.session_state.aud_rate}s
+    {esc(T("live_dot"))} · {esc(status_lbl)} · {esc(T("room"))} <b>{esc(room)}</b> · <b>{esc(tgt.upper())}</b>
   </span>
 </div>""", height=38)
 
-        if not rows:
+        if not all_cards:
             st.iframe(PALETTE + f"""
 <style>body{{padding:30px 0;text-align:center;background:transparent;}}</style>
 <div style='font-size:42px;margin-bottom:9px'>⏳</div>
-<div style='font-size:14px;color:#888;font-family:"Cairo","Noto Naskh Arabic",sans-serif;'>{esc(T("waiting"))}</div>
+<div style='font-size:14px;color:#888;font-family:"Cairo","Noto Naskh Arabic",sans-serif;'>
+  {esc(T("waiting"))}</div>
 <div style='font-size:11px;color:#555;margin-top:5px;font-family:"Cairo","Noto Naskh Arabic",sans-serif;'>
   {esc(T("will_broadcast"))}</div>
 """, height=150)
             return
 
-        # ── Build ONE continuous translated text from all recent segments ──
-        # rows are newest-first; reverse so we build in chronological order
-        chronological = list(reversed(rows))
+        # ── LIVE card (newest, not sealed) ────────────────────────────────────
+        if live_card:
+            cid, chunk_rows, _ = live_card
+            src_lang = chunk_rows[0][1] if chunk_rows else ""
+            last_ts  = chunk_rows[-1][2] if chunk_rows else ""
 
-        # Translate each segment and join into a single flowing text
-        translated_parts = []
-        source_parts = []
-        first_lang = chronological[0][1] if chronological else ""
-        last_ts = rows[0][2]  # most recent timestamp (rows is newest-first)
+            # Translate each chunk individually (cached) then join
+            tr_parts = []
+            for chunk_txt, chunk_lang, _ in chunk_rows:
+                t = tr(chunk_txt, tgt, chunk_lang)
+                if t and t.strip():
+                    tr_parts.append(t.strip())
 
-        for seg_txt, seg_lang, seg_ts in chronological:
-            t = tr(seg_txt, tgt, seg_lang)
-            if t and t.strip():
-                translated_parts.append(t.strip())
-            if seg_txt and seg_txt.strip():
-                source_parts.append(seg_txt.strip())
+            # All-but-last in white, latest chunk highlighted orange
+            if len(tr_parts) > 1:
+                prev_html = esc(" ".join(tr_parts[:-1])) + " "
+            else:
+                prev_html = ""
+            new_html = esc(tr_parts[-1]) if tr_parts else ""
 
-        # Join with space (RTL languages naturally concatenate this way too)
-        separator = " "
-        full_translated = separator.join(translated_parts)
-        full_source = separator.join(source_parts)
+            full_tr   = " ".join(tr_parts)
+            js_full   = json.dumps(full_tr)
+            n_chunks  = len(chunk_rows)
 
-        show_src = (
-            _norm_for_google(first_lang) != _norm_for_google(tgt)
-            and full_source != full_translated
-            and full_source
-        )
+            # Dynamic height
+            char_count     = len(full_tr)
+            chars_per_line = max(1, int(300 / (fpx * 0.55)))
+            lines          = max(1, -(-char_count // chars_per_line))
+            card_h         = max(180, lines * (fpx + 12) + 100)
 
-        src_dir   = dir_attr(first_lang)
-        src_style = rtl_style(first_lang)
-        src_font  = (
-            "'Noto Naskh Arabic','Cairo',sans-serif"
-            if src_dir == "rtl" else "'Cairo',sans-serif"
-        )
-
-        src_div = (
-            f'<div class="so" dir="{src_dir}" '
-            f'style="{src_style}font-family:{src_font};">'
-            f'{esc(full_source)}</div>'
-            if show_src else ""
-        )
-
-        js_translated = json.dumps(full_translated)
-        fs_align = "right" if tgt_dir == "rtl" else "left"
-
-        # Estimate card height based on text length and font size
-        char_count = len(full_translated)
-        # rough chars per line at given font size in a ~340px wide card
-        chars_per_line = max(1, int(320 / (fpx * 0.55)))
-        lines = max(1, -(-char_count // chars_per_line))  # ceiling division
-        src_extra = max(0, int(len(full_source) / chars_per_line) * 18 + 40) if show_src else 0
-        card_h = max(180, lines * (fpx + 10) + src_extra + 100)
-
-        st.iframe(PALETTE + f"""
+            st.iframe(PALETTE + f"""
 <style>
 body{{padding:5px 0 3px;background:transparent;}}
 .stage{{
   background:#060606;border-radius:18px;
-  padding:24px 20px;position:relative;overflow:hidden;
-  display:flex;flex-direction:column;justify-content:flex-start;
+  padding:22px 20px 18px;position:relative;overflow:hidden;
 }}
-.border-glow{{
+.glow{{
   position:absolute;inset:-1px;z-index:0;border-radius:18px;pointer-events:none;
-  background:linear-gradient(135deg,rgba(206,17,38,.25),transparent 40%,rgba(0,122,61,.25));
+  background:linear-gradient(135deg,rgba(206,17,38,.22),transparent 40%,rgba(0,122,61,.22));
 }}
 .stage::after{{
   content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
   background:linear-gradient(90deg,#ce1126 0%,#ce1126 33%,#000 33%,#000 66%,#007a3d 66%);
   z-index:1;
 }}
-.so{{
-  font-size:11px;color:#2a2a2a;font-style:italic;
-  margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid #111;
-  line-height:1.6;position:relative;z-index:2;
+.live-badge{{
+  display:inline-flex;align-items:center;gap:5px;
+  background:rgba(253,107,75,.1);border:1px solid rgba(253,107,75,.3);
+  border-radius:6px;padding:2px 9px;margin-bottom:10px;
+  font-size:10px;color:#ff8a6a;font-family:'JetBrains Mono',monospace;
+  font-weight:700;letter-spacing:.08em;position:relative;z-index:2;
+}}
+@keyframes bl{{0%,100%{{opacity:1}}50%{{opacity:.3}}}}
+.dot{{width:6px;height:6px;border-radius:50%;background:#ff8a6a;
+  animation:bl 1s infinite;display:inline-block;}}
+.body{{
+  font-size:{fpx}px;font-weight:700;line-height:1.7;
+  font-family:{tgt_font};
+  {tgt_sty}
+  position:relative;z-index:2;
   word-break:break-word;
 }}
-.st{{
-  color:#f2ede3;font-weight:700;line-height:1.75;
-  font-size:{fpx}px;
-  font-family:{tgt_font};
-  {tgt_style}
-  position:relative;z-index:2;
-  word-break:break-word;white-space:pre-wrap;
-}}
-/* Highlight only the very last segment (newest words) */
-.st .new-seg{{
-  color:#fd6b4b;
-  transition:color 1.5s ease;
-}}
-.sm{{font-family:'JetBrains Mono',monospace;font-size:10px;color:#555;margin-top:11px;
-  position:relative;z-index:2;}}
+.body .old{{color:#f2ede3;}}
+.body .new{{color:#fd6b4b;}}
+@keyframes pop{{from{{opacity:.2;transform:translateY(4px)}}to{{opacity:1;transform:none}}}}
+.body .new{{animation:pop .3s ease;}}
+.meta{{font-family:'JetBrains Mono',monospace;font-size:10px;color:#333;
+  margin-top:10px;position:relative;z-index:2;}}
 </style>
 <div class="stage">
-  <div class="border-glow"></div>
-  {src_div}
-  <div class="st" dir="{tgt_dir}">{esc(separator.join(translated_parts[:-1])) + (' ' if len(translated_parts) > 1 else '') + '<span class="new-seg">' + esc(translated_parts[-1] if translated_parts else '') + '</span>'}</div>
-  <div class="sm">🕐 {esc(last_ts)} · {esc(tgt.upper())} · {n} {esc(T("segs"))}</div>
+  <div class="glow"></div>
+  <div class="live-badge"><span class="dot"></span> LIVE · {n_chunks} {esc(T("chunks"))}</div>
+  <div class="body" dir="{tgt_dir}">
+    <span class="old">{prev_html}</span><span class="new">{new_html}</span>
+  </div>
+  <div class="meta">🕐 {esc(last_ts)} · {esc(src_lang.upper())} → {esc(tgt.upper())}</div>
 </div>
 """, height=card_h)
 
-        st.iframe(PALETTE + f"""
+            # Action buttons
+            st.iframe(PALETTE + f"""
 <style>
 body{{background:transparent;padding:4px 0 5px;}}
 .row{{display:flex;gap:8px;}}
 .btn{{
   flex:1;background:#060606;border:1px solid #161616;border-radius:12px;
-  padding:13px 8px;color:#333;font-size:12px;cursor:pointer;
+  padding:12px 8px;color:#333;font-size:12px;cursor:pointer;
   font-family:'Cairo',sans-serif;font-weight:700;text-align:center;
   -webkit-tap-highlight-color:transparent;transition:all .18s;
 }}
@@ -1301,7 +1292,7 @@ body{{background:transparent;padding:4px 0 5px;}}
   color:#f2ede3;font-weight:700;line-height:1.55;
   font-size:clamp(24px,6vw,60px);max-width:95%;
   direction:{tgt_dir};font-family:{tgt_font};
-  word-break:break-word;white-space:pre-wrap;
+  word-break:break-word;
 }}
 #fs-b{{position:absolute;bottom:0;left:0;right:0;height:4px;
   background:linear-gradient(90deg,#ce1126 0%,#ce1126 33%,#000 33%,#000 66%,#007a3d 66%);}}
@@ -1314,28 +1305,58 @@ body{{background:transparent;padding:4px 0 5px;}}
   <span id="cm">✓</span>
 </div>
 <div id="fs" onclick="closefs()">
-  <div id="fs-t" dir="{tgt_dir}">{esc(full_translated)}</div>
+  <div id="fs-t" dir="{tgt_dir}">{esc(full_tr)}</div>
   <div id="fs-h">{esc(T("tap_close"))}</div>
   <div id="fs-b"></div>
 </div>
 <script>
-const TX={js_translated}, L="{esc(tgt)}";
-function speak(){{
-  speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(TX);
-  u.lang=L;speechSynthesis.speak(u);
-}}
-function copy(){{
-  navigator.clipboard.writeText(TX).then(()=>{{
-    const m=document.getElementById('cm');
-    m.style.opacity='1';
-    setTimeout(()=>m.style.opacity='0',2000);
-  }}).catch(()=>{{}});
-  if(navigator.vibrate)navigator.vibrate(40);
-}}
+const TX={js_full},L="{esc(tgt)}";
+function speak(){{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(TX);u.lang=L;speechSynthesis.speak(u);}}
+function copy(){{navigator.clipboard.writeText(TX).then(()=>{{const m=document.getElementById('cm');m.style.opacity='1';setTimeout(()=>m.style.opacity='0',2000);}}).catch(()=>{{}});if(navigator.vibrate)navigator.vibrate(40);}}
 function openfs(){{document.getElementById('fs').style.display='flex';}}
 function closefs(){{document.getElementById('fs').style.display='none';}}
 </script>
-""", height=58)
+""", height=56)
+
+        # ── SEALED previous cards ─────────────────────────────────────────────
+        sealed_cards = [c for c in all_cards if c[2]]
+        if sealed_cards:
+            st.markdown(f"""
+<div style='margin:8px 0 4px;font-size:10px;color:#444;text-align:center;
+  font-family:monospace;letter-spacing:.12em;'>{esc(T("previous"))}</div>
+""", unsafe_allow_html=True)
+
+            prev_html = ""
+            for cid, chunk_rows, _ in sealed_cards:
+                if not chunk_rows: continue
+                src_lang = chunk_rows[0][1]
+                ts       = chunk_rows[-1][2]
+                tr_parts = []
+                for ct, cl, _ in chunk_rows:
+                    t = tr(ct, tgt, cl)
+                    if t and t.strip(): tr_parts.append(t.strip())
+                full_tr = " ".join(tr_parts)
+                d2  = dir_attr(tgt)
+                rs2 = rtl_style(tgt)
+                tf2 = ("'Noto Naskh Arabic','Cairo',sans-serif"
+                       if d2 == "rtl" else "'Cairo',sans-serif")
+                prev_html += f"""
+<div class="pc">
+  <div class="at" dir="{d2}" style="{rs2}font-family:{tf2};">{esc(full_tr)}</div>
+  <div class="ats">🕐 {esc(ts)} · {esc(src_lang.upper())} → {esc(tgt.upper())} · {len(chunk_rows)} {esc(T("chunks"))}</div>
+</div>"""
+
+            sealed_h = min(50 + len(sealed_cards) * 100, 1600)
+            st.iframe(PALETTE + f"""
+<style>
+body{{background:transparent;padding:2px 0 20px;}}
+.pc{{background:#0d0d0d;border:1px solid #1a1a1a;border-radius:14px;
+  padding:14px 16px;margin:5px 0;transition:border-color .2s;}}
+.pc:hover{{border-color:#2a2a2a;}}
+.at{{font-size:15px;font-weight:600;color:#888;line-height:1.7;word-break:break-word;}}
+.ats{{font-size:10px;color:#333;font-family:'JetBrains Mono',monospace;margin-top:6px;}}
+</style>
+{prev_html}
+""", height=sealed_h)
 
     live_display()
