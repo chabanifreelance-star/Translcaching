@@ -68,6 +68,9 @@ UI_STRINGS = {
         "segs": "segs",
         "room": "Room",
         "live_dot": "🔴 Live",
+        "preview_lang": "Preview translation in",
+        "live_translation": "LIVE TRANSLATION",
+        "original": "Original",
     },
     "fr": {
         "hero_line1": "LIVE",
@@ -110,6 +113,9 @@ UI_STRINGS = {
         "segs": "segs",
         "room": "Salle",
         "live_dot": "🔴 En direct",
+        "preview_lang": "Aperçu de la traduction en",
+        "live_translation": "TRADUCTION EN DIRECT",
+        "original": "Original",
     },
     "ar": {
         "hero_line1": "مباشر",
@@ -152,6 +158,9 @@ UI_STRINGS = {
         "segs": "مقطع",
         "room": "غرفة",
         "live_dot": "🔴 مباشر",
+        "preview_lang": "معاينة الترجمة بـ",
+        "live_translation": "ترجمة فورية",
+        "original": "النص الأصلي",
     },
     "tr": {
         "hero_line1": "CANLI",
@@ -194,6 +203,9 @@ UI_STRINGS = {
         "segs": "bölüm",
         "room": "Oda",
         "live_dot": "🔴 Canlı",
+        "preview_lang": "Çeviriyi önizle",
+        "live_translation": "CANLI ÇEVİRİ",
+        "original": "Orijinal",
     },
     "es": {
         "hero_line1": "EN VIVO",
@@ -236,6 +248,9 @@ UI_STRINGS = {
         "segs": "segs",
         "room": "Sala",
         "live_dot": "🔴 En vivo",
+        "preview_lang": "Vista previa de traducción en",
+        "live_translation": "TRADUCCIÓN EN VIVO",
+        "original": "Original",
     },
 }
 
@@ -601,17 +616,19 @@ AUDIENCE_LANGS = {
 }
 
 DEFAULTS = {
-    "page":       "home",
-    "room_code":  None,
-    "last_hash":  None,
-    "last_txt":   "",
-    "last_lang":  "",
-    "spk_lang":   "en",
-    "aud_lang":   "ar",
-    "aud_fpx":    28,
-    "aud_rate":   3,
-    "join_error": "",
-    "ui_lang":    "en",
+    "page":           "home",
+    "room_code":      None,
+    "last_hash":      None,
+    "last_txt":       "",
+    "last_lang":      "",
+    "last_translated": {},   # dict: target_lang -> translated text
+    "spk_lang":       "en",
+    "spk_preview_lang": "ar",   # language the speaker wants to preview translation in
+    "aud_lang":       "ar",
+    "aud_fpx":        28,
+    "aud_rate":       3,
+    "join_error":     "",
+    "ui_lang":        "en",
 }
 for k, v in DEFAULTS.items():
     if k not in st.session_state:
@@ -922,13 +939,27 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
         if st.button(T("home_btn"), key="spk_home", use_container_width=True):
             go("home", room_code=None)
 
-    spk_label = st.selectbox(
-        T("speaking_lang"),
-        list(SPEAKER_LANGS.keys()),
-        index=list(SPEAKER_LANGS.values()).index(st.session_state.spk_lang),
-        key="spk_lang_sel",
-    )
-    st.session_state.spk_lang = SPEAKER_LANGS[spk_label]
+    sl1, sl2 = st.columns(2, gap="small")
+    with sl1:
+        spk_label = st.selectbox(
+            T("speaking_lang"),
+            list(SPEAKER_LANGS.keys()),
+            index=list(SPEAKER_LANGS.values()).index(st.session_state.spk_lang),
+            key="spk_lang_sel",
+        )
+        st.session_state.spk_lang = SPEAKER_LANGS[spk_label]
+    with sl2:
+        prev_label = st.selectbox(
+            T("preview_lang"),
+            list(AUDIENCE_LANGS.keys()),
+            index=list(AUDIENCE_LANGS.values()).index(
+                st.session_state.get("spk_preview_lang", "ar")
+                if st.session_state.get("spk_preview_lang", "ar") in AUDIENCE_LANGS.values()
+                else "ar"
+            ),
+            key="spk_prev_lang_sel",
+        )
+        st.session_state.spk_preview_lang = AUDIENCE_LANGS[prev_label]
 
     st.markdown(f"""
 <div style='font-size:11px;color:#2a2a2a;letter-spacing:.1em;text-transform:uppercase;
@@ -947,6 +978,11 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
             with st.spinner("Transcribing…"):
                 txt, lang = transcribe(audio_bytes, lang_code)
             if txt:
+                # Simultaneous translation: translate immediately into preview language
+                prev_lang = st.session_state.get("spk_preview_lang", "ar")
+                with st.spinner("Translating…"):
+                    translated = tr(txt, prev_lang, lang)
+                st.session_state.last_translated = {prev_lang: translated}
                 if db_save(room, txt, lang):
                     st.session_state.last_txt  = txt
                     st.session_state.last_lang = lang
@@ -955,6 +991,88 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
                     st.error("Save failed — try again.")
             else:
                 st.warning("⚠️ No speech detected — try again.")
+
+    # ── Simultaneous translation live card ───────────────────────────────────
+    if st.session_state.last_txt:
+        prev_lang     = st.session_state.get("spk_preview_lang", "ar")
+        last_txt      = st.session_state.last_txt
+        last_lang     = st.session_state.last_lang
+        translated    = st.session_state.last_translated.get(prev_lang)
+        # If preview language changed after last recording, re-translate on the fly
+        if translated is None:
+            translated = tr(last_txt, prev_lang, last_lang)
+            st.session_state.last_translated[prev_lang] = translated
+
+        orig_dir    = dir_attr(last_lang)
+        orig_style  = rtl_style(last_lang)
+        orig_font   = ("'Noto Naskh Arabic','Cairo',sans-serif"
+                       if orig_dir == "rtl" else "'Cairo',sans-serif")
+        tgt_dir     = dir_attr(prev_lang)
+        tgt_style   = rtl_style(prev_lang)
+        tgt_font    = ("'Noto Naskh Arabic','Cairo',sans-serif"
+                       if tgt_dir == "rtl" else "'Cairo',sans-serif")
+        same_lang   = _norm_for_google(last_lang) == _norm_for_google(prev_lang)
+
+        orig_div = (
+            f'<div class="orig-lbl">{esc(T("original"))} · {esc(last_lang.upper())}</div>'
+            f'<div class="orig-txt" dir="{orig_dir}" style="{orig_style}font-family:{orig_font};">'
+            f'{esc(last_txt)}</div>'
+        )
+        trans_div = "" if same_lang else (
+            f'<div class="tr-lbl">{esc(prev_lang.upper())}</div>'
+            f'<div class="tr-txt" dir="{tgt_dir}" style="{tgt_style}font-family:{tgt_font};">'
+            f'{esc(translated)}</div>'
+        )
+
+        st.iframe(PALETTE + f"""
+<style>
+body{{padding:6px 0 4px;background:transparent;}}
+.live-card{{
+  background:linear-gradient(135deg,rgba(0,122,61,.07),#060606 55%);
+  border:1px solid rgba(0,198,94,.2);border-radius:16px;
+  padding:16px 18px;position:relative;overflow:hidden;
+}}
+.live-card::before{{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,#007a3d,#00c65e,#007a3d);
+  animation:sh 2.5s linear infinite;background-size:200% 100%;
+}}
+@keyframes sh{{0%{{background-position:200% 0}}100%{{background-position:-200% 0}}}}
+.live-badge{{
+  display:inline-flex;align-items:center;gap:5px;margin-bottom:10px;
+  background:rgba(0,198,94,.1);border:1px solid rgba(0,198,94,.25);
+  border-radius:6px;padding:2px 9px;
+  font-size:10px;font-weight:700;letter-spacing:.1em;color:#00c65e;
+  font-family:'JetBrains Mono',monospace;text-transform:uppercase;
+}}
+.dot{{
+  width:7px;height:7px;border-radius:50%;background:#00c65e;
+  animation:dp 1.2s infinite;display:inline-block;
+}}
+@keyframes dp{{0%,100%{{opacity:1}}50%{{opacity:.2}}}}
+.orig-lbl,.tr-lbl{{
+  font-size:9px;color:#333;letter-spacing:.14em;text-transform:uppercase;
+  font-family:'JetBrains Mono',monospace;margin-bottom:3px;margin-top:8px;
+}}
+.orig-txt{{
+  font-size:14px;color:#555;line-height:1.6;font-weight:600;
+  padding-bottom:8px;border-bottom:1px solid #111;
+}}
+.tr-txt{{
+  font-size:20px;font-weight:700;color:#f2ede3;line-height:1.6;
+  animation:fi .35s ease;
+}}
+@keyframes fi{{from{{opacity:.1;transform:translateY(6px)}}to{{opacity:1;transform:none}}}}
+</style>
+<div class="live-card">
+  <div class="live-badge">
+    <span class="dot"></span>
+    {esc(T("live_translation"))}
+  </div>
+  {orig_div}
+  {trans_div}
+</div>
+""", height=210 if not same_lang else 140)
 
     n = db_count(room)
     s1, s2 = st.columns([4, 1], gap="small")
@@ -995,8 +1113,11 @@ body{{margin:0;padding:3px 0;background:transparent;}}
             safe_ts   = esc(ts)
             d   = dir_attr(lang)
             rs  = rtl_style(lang)
+            txt_font = ("'Noto Naskh Arabic','Cairo',sans-serif"
+                        if dir_attr(lang) == "rtl" else "'Cairo',sans-serif")
             new = i == 0
-            bl  = "border-left:3px solid #fd6b4b;" if new else ""
+            is_rtl_seg = dir_attr(lang) == "rtl"
+            bl  = ("border-right:3px solid #fd6b4b;" if is_rtl_seg else "border-left:3px solid #fd6b4b;") if new else ""
             bg  = "background:linear-gradient(135deg,rgba(253,107,75,.06),#080808 55%);" if new else ""
             an  = "animation:sl .35s ease;" if new else ""
             nt  = '<span class="ntag">NEW</span>' if new else ""
@@ -1006,7 +1127,7 @@ body{{margin:0;padding:3px 0;background:transparent;}}
     <span class="ts">🕐 {safe_ts}</span>
     <span class="ltag">{safe_lang}</span>{nt}
   </div>
-  <div class="htxt" dir="{d}" style="{rs}">{safe_txt}</div>
+  <div class="htxt" dir="{d}" style="{rs}font-family:{txt_font};unicode-bidi:embed;">{safe_txt}</div>
 </div>"""
         st.iframe(PALETTE + f"""
 <style>
@@ -1023,8 +1144,7 @@ body{{background:transparent;padding:4px 0 24px;}}
 .ntag{{background:rgba(253,107,75,.1);color:#ff8a6a;border:1px solid rgba(253,107,75,.25);
   border-radius:5px;padding:1px 8px;font-size:9px;font-weight:700;
   letter-spacing:.1em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;}}
-.htxt{{font-size:16px;font-weight:600;color:#f2ede3;line-height:1.65;
-  font-family:'Noto Naskh Arabic','Cairo',sans-serif;}}
+.htxt{{font-size:16px;font-weight:600;color:#f2ede3;line-height:1.65;}}
 </style>
 {cards}
 """, height=min(80 + len(rows) * 90, 2400))
