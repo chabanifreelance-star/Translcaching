@@ -465,17 +465,17 @@ def get_whisper_base():
 
 @st.cache_resource(show_spinner=False)
 def get_whisper_arabic():
-    """Large-v2 for Arabic — base/small hallucinate heavily on Arabic."""
+    """Medium model for Arabic — large-v2 OOMs on Streamlit Cloud CPU; medium is reliable."""
     try:
         from faster_whisper import WhisperModel
         try:
-            return WhisperModel("large-v2", device="cuda", compute_type="float16")
+            return WhisperModel("medium", device="cuda", compute_type="float16")
         except Exception:
-            return WhisperModel("large-v2", device="cpu", compute_type="int8")
+            return WhisperModel("medium", device="cpu", compute_type="int8")
     except Exception:
         try:
             from faster_whisper import WhisperModel
-            return WhisperModel("medium", device="cpu", compute_type="int8")
+            return WhisperModel("small", device="cpu", compute_type="int8")
         except Exception:
             return None
 
@@ -498,7 +498,12 @@ def _is_hallucination(text: str, lang_code: str) -> bool:
             return True
     return False
 
-def transcribe(audio_bytes: bytes, lang_code: str):
+def transcribe(audio_bytes: bytes, lang_code: str, room: str = None):
+    """
+    Transcribe audio. When `room` is provided, each segment is saved to the DB
+    as soon as faster-whisper yields it — so audience sees text in near real-time.
+    Returns (full_text, lang_code).
+    """
     is_arabic = lang_code == "ar"
     model = get_whisper_arabic() if is_arabic else get_whisper_base()
     if not model:
@@ -532,6 +537,9 @@ def transcribe(audio_bytes: bytes, lang_code: str):
                 if hasattr(s, 'compression_ratio') and s.compression_ratio > 2.4:
                     continue
                 parts.append(txt)
+                # ── Real-time: push each segment to DB immediately ──
+                if room:
+                    db_save(room, txt, lang_code)
             return " ".join(parts).strip(), lang_code
         else:
             segs, _ = model.transcribe(
@@ -540,7 +548,16 @@ def transcribe(audio_bytes: bytes, lang_code: str):
                 condition_on_previous_text=False,
                 vad_parameters={"min_silence_duration_ms": 400},
             )
-            return " ".join(s.text.strip() for s in segs).strip(), lang_code
+            parts = []
+            for s in segs:
+                txt = s.text.strip()
+                if not txt:
+                    continue
+                parts.append(txt)
+                # ── Real-time: push each segment to DB immediately ──
+                if room:
+                    db_save(room, txt, lang_code)
+            return " ".join(parts).strip(), lang_code
     except Exception:
         return "", lang_code
     finally:
@@ -593,12 +610,6 @@ def tr(text: str, target: str, source: str) -> str:
 SPEAKER_LANGS = {
     "🇬🇧 English": "en",
     "🇸🇦 Arabic":  "ar",
-    "🇫🇷 French":  "fr",
-    "🇹🇷 Turkish": "tr",
-    "🇪🇸 Spanish": "es",
-    "🇩🇪 German":  "de",
-    "🇮🇹 Italian": "it",
-    "🇷🇺 Russian": "ru",
 }
 
 AUDIENCE_LANGS = {
@@ -626,7 +637,7 @@ DEFAULTS = {
     "spk_preview_lang": "ar",   # language the speaker wants to preview translation in
     "aud_lang":       "ar",
     "aud_fpx":        28,
-    "aud_rate":       3,
+    "aud_rate":       1,
     "join_error":     "",
     "ui_lang":        "en",
 }
@@ -976,19 +987,18 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
             st.session_state.last_hash = h
             lang_code = st.session_state.spk_lang
             with st.spinner("Transcribing…"):
-                txt, lang = transcribe(audio_bytes, lang_code)
+                # Pass room so each segment is saved to DB as soon as it's ready
+                txt, lang = transcribe(audio_bytes, lang_code, room=room)
             if txt:
                 # Simultaneous translation: translate immediately into preview language
                 prev_lang = st.session_state.get("spk_preview_lang", "ar")
                 with st.spinner("Translating…"):
                     translated = tr(txt, prev_lang, lang)
                 st.session_state.last_translated = {prev_lang: translated}
-                if db_save(room, txt, lang):
-                    st.session_state.last_txt  = txt
-                    st.session_state.last_lang = lang
-                    st.rerun()
-                else:
-                    st.error("Save failed — try again.")
+                # Segments already saved inside transcribe(); just update UI state
+                st.session_state.last_txt  = txt
+                st.session_state.last_lang = lang
+                st.rerun()
             else:
                 st.warning("⚠️ No speech detected — try again.")
 
@@ -1201,8 +1211,8 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
     with c2:
         rate = st.selectbox(
             T("refresh"),
-            [2, 3, 5, 8],
-            index=1,
+            [1, 2, 3, 5, 8],
+            index=0,
             format_func=lambda x: f"↺{x}s",
             label_visibility="collapsed",
             key="aud_rate_sel",
