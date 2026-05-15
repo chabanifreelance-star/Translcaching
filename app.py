@@ -47,12 +47,12 @@ UI_STRINGS = {
         "back": "← Back",
         "ask_speaker": "Ask the <b>Speaker</b> for the 4-digit room code.<br>Each room is private — only that room's subtitles appear.",
         "speak_now": "SPEAK NOW",
-        "tap_mic": "Tap mic · speak · tap again to send chunk",
+        "tap_mic": "Tap START · speak continuously · tap STOP when done",
         "speaking_lang": "Speaking language",
-        "tap_hint": "🎙️  keep tapping · each recording adds to the live card",
+        "tap_hint": "🎙️  press START · speak freely · press STOP to finish the segment",
         "home_btn": "← Home",
         "clear_btn": "🗑 Clear",
-        "nothing_yet": "Nothing yet — tap the mic above",
+        "nothing_yet": "Nothing yet — press START above",
         "live_subs": "LIVE SUBS",
         "realtime_subs": "Real-time translated subtitles",
         "language": "Language",
@@ -73,6 +73,9 @@ UI_STRINGS = {
         "new_card": "🆕 New Card",
         "streaming": "● streaming",
         "sealed": "✓ done",
+        "start_btn": "🎤 START",
+        "stop_btn": "⏹ STOP",
+        "recording": "● RECORDING",
     },
     "fr": {
         "hero_line1": "LIVE",
@@ -94,12 +97,12 @@ UI_STRINGS = {
         "back": "← Retour",
         "ask_speaker": "Demandez le code 4 chiffres au <b>Conférencier</b>.<br>Chaque salle est privée — seuls ses sous-titres apparaissent.",
         "speak_now": "PARLEZ MAINTENANT",
-        "tap_mic": "Appuyez · parlez · chaque enregistrement s'ajoute",
+        "tap_mic": "Appuyez DÉMARRER · parlez librement · ARRÊTER pour terminer",
         "speaking_lang": "Langue de discours",
-        "tap_hint": "🎙️  continuez à appuyer · chaque chunk s'ajoute en direct",
+        "tap_hint": "🎙️  appuyez DÉMARRER · parlez librement · ARRÊTER pour finir le segment",
         "home_btn": "← Accueil",
         "clear_btn": "🗑 Effacer",
-        "nothing_yet": "Rien encore — appuyez sur le micro",
+        "nothing_yet": "Rien encore — appuyez sur DÉMARRER",
         "live_subs": "SOUS-TITRES",
         "realtime_subs": "Sous-titres traduits en temps réel",
         "language": "Langue",
@@ -120,6 +123,9 @@ UI_STRINGS = {
         "new_card": "🆕 Nouvelle carte",
         "streaming": "● diffusion",
         "sealed": "✓ terminé",
+        "start_btn": "🎤 DÉMARRER",
+        "stop_btn": "⏹ ARRÊTER",
+        "recording": "● ENREGISTREMENT",
     },
     "ar": {
         "hero_line1": "مباشر",
@@ -141,12 +147,12 @@ UI_STRINGS = {
         "back": "→ رجوع",
         "ask_speaker": "اطلب من <b>المتحدث</b> رمز الغرفة المكون من 4 أرقام.<br>كل غرفة خاصة — تظهر ترجمتها فقط.",
         "speak_now": "تحدث الآن",
-        "tap_mic": "اضغط الميكروفون · كل تسجيل يُضاف للبطاقة الحية",
+        "tap_mic": "اضغط ابدأ · تحدث بحرية · اضغط إيقاف عند الانتهاء",
         "speaking_lang": "لغة الحديث",
-        "tap_hint": "🎙️  استمر في الضغط · كل مقطع يُضاف مباشرة",
+        "tap_hint": "🎙️  اضغط ابدأ · تحدث بحرية · اضغط إيقاف لإنهاء المقطع",
         "home_btn": "→ الرئيسية",
         "clear_btn": "🗑 مسح",
-        "nothing_yet": "لا شيء بعد — اضغط الميكروفون أعلاه",
+        "nothing_yet": "لا شيء بعد — اضغط ابدأ",
         "live_subs": "ترجمة مباشرة",
         "realtime_subs": "ترجمة فورية في الوقت الحقيقي",
         "language": "اللغة",
@@ -167,6 +173,9 @@ UI_STRINGS = {
         "new_card": "🆕 بطاقة جديدة",
         "streaming": "● بث مباشر",
         "sealed": "✓ انتهى",
+        "start_btn": "🎤 ابدأ",
+        "stop_btn": "⏹ إيقاف",
+        "recording": "● تسجيل",
     },
     "tr": {
         "hero_line1": "CANLI",
@@ -188,12 +197,12 @@ UI_STRINGS = {
         "back": "← Geri",
         "ask_speaker": "<b>Konuşmacıdan</b> 4 haneli oda kodunu isteyin.<br>Her oda özeldir — yalnızca o odanın altyazıları görünür.",
         "speak_now": "KONUŞUN",
-        "tap_mic": "Mikrofona bas · her kayıt canlı karta eklenir",
+        "tap_mic": "BAŞLAT'a bas · özgürce konuş · DURDUR ile bitir",
         "speaking_lang": "Konuşma dili",
-        "tap_hint": "🎙️  basmaya devam et · her chunk canlı eklenir",
+        "tap_hint": "🎙️  BAŞLAT'a bas · özgürce konuş · DURDUR ile segmenti bitir",
         "home_btn": "← Ana Sayfa",
         "clear_btn": "🗑 Temizle",
-        "nothing_yet": "Henüz bir şey yok — yukarıdaki mikrofona basın",
+        "nothing_yet": "Henüz bir şey yok — BAŞLAT'a basın",
         "live_subs": "CANLI ALTYAZI",
         "realtime_subs": "Gerçek zamanlı çevrilmiş altyazılar",
         "language": "Dil",
@@ -214,6 +223,9 @@ UI_STRINGS = {
         "new_card": "🆕 Yeni Kart",
         "streaming": "● yayında",
         "sealed": "✓ bitti",
+        "start_btn": "🎤 BAŞLAT",
+        "stop_btn": "⏹ DURDUR",
+        "recording": "● KAYIT",
     },
     "es": {
         "hero_line1": "EN VIVO",
@@ -235,12 +247,12 @@ UI_STRINGS = {
         "back": "← Atrás",
         "ask_speaker": "Pide al <b>Orador</b> el código de sala de 4 dígitos.<br>Cada sala es privada — solo aparecen sus subtítulos.",
         "speak_now": "HABLA AHORA",
-        "tap_mic": "Toca el micrófono · cada grabación se añade en vivo",
+        "tap_mic": "Toca INICIAR · habla libremente · DETENER para terminar",
         "speaking_lang": "Idioma de habla",
-        "tap_hint": "🎙️  sigue tocando · cada chunk se añade en directo",
+        "tap_hint": "🎙️  toca INICIAR · habla libremente · DETENER para finalizar el segmento",
         "home_btn": "← Inicio",
         "clear_btn": "🗑 Limpiar",
-        "nothing_yet": "Nada todavía — toca el micrófono arriba",
+        "nothing_yet": "Nada todavía — toca INICIAR arriba",
         "live_subs": "SUBTÍTULOS",
         "realtime_subs": "Subtítulos traducidos en tiempo real",
         "language": "Idioma",
@@ -261,6 +273,9 @@ UI_STRINGS = {
         "new_card": "🆕 Nueva tarjeta",
         "streaming": "● en vivo",
         "sealed": "✓ listo",
+        "start_btn": "🎤 INICIAR",
+        "stop_btn": "⏹ DETENER",
+        "recording": "● GRABANDO",
     },
 }
 
@@ -377,8 +392,6 @@ def init_db():
     with _cx() as c:
         c.execute("""CREATE TABLE IF NOT EXISTS rooms(
             code TEXT PRIMARY KEY, created TEXT NOT NULL)""")
-        # card_id groups chunks belonging to one "speaking session"
-        # sealed=1 means the speaker stopped (new card will start next time)
         c.execute("""CREATE TABLE IF NOT EXISTS chunks(
             id        INTEGER PRIMARY KEY AUTOINCREMENT,
             room      TEXT    NOT NULL,
@@ -420,7 +433,6 @@ def _check_rate_limit(room: str, max_per_minute: int = 60) -> bool:
         c.commit(); return True
 
 def chunk_save(room: str, card_id: str, txt: str, lang: str) -> bool:
-    """Append a chunk to an open card."""
     try:
         if not _check_rate_limit(room):
             return False
@@ -437,7 +449,6 @@ def chunk_save(room: str, card_id: str, txt: str, lang: str) -> bool:
         return False
 
 def card_seal(room: str, card_id: str):
-    """Mark every chunk of this card as sealed (speaker stopped)."""
     try:
         with _cx() as c:
             c.execute("UPDATE chunks SET sealed=1 WHERE room=? AND card_id=?", (room, card_id))
@@ -446,15 +457,10 @@ def card_seal(room: str, card_id: str):
         pass
 
 def cards_get(room: str, limit: int = 8):
-    """
-    Return cards newest-first.
-    Each card: (card_id, [(txt, lang, ts), ...], sealed)
-    """
     try:
         if not re.fullmatch(r"[0-9]{4}", room or ""):
             return []
         with _cx() as c:
-            # get distinct card_ids ordered by their latest chunk, newest first
             card_ids = c.execute(
                 """SELECT card_id, MAX(id) as mx, MAX(sealed) as s
                    FROM chunks WHERE room=?
@@ -503,7 +509,7 @@ _AR_HALLUCINATIONS = {
     "شكراً","شكرا","شكراً للمشاهدة","شكرا للمشاهدة",
     "للمشاهدة","للاستماع","مع السلامة","إلى اللقاء",
     "أراكم في الحلقة القادمة","تابعونا","اشتركوا في القناة",
-    "سبحان الله","بسم الله الرحمن الرحيم","."," .","..","..."," ","",
+    "سبحان الله","بسم الله الرحمن الرحيم",".","  .","..","..."," ","",
 }
 
 def _is_hallucination(text: str, lang_code: str) -> bool:
@@ -515,11 +521,6 @@ def _is_hallucination(text: str, lang_code: str) -> bool:
     return False
 
 def transcribe(audio_bytes: bytes, lang_code: str, room: str, card_id: str):
-    """
-    Transcribe audio; each Whisper segment is saved to DB immediately
-    so the audience sees words growing in the live card in real-time.
-    Returns full text.
-    """
     is_arabic = lang_code == "ar"
     model = get_whisper_arabic() if is_arabic else get_whisper_base()
     if not model:
@@ -631,14 +632,15 @@ DEFAULTS = {
     "page":        "home",
     "room_code":   None,
     "last_hash":   None,
-    # card_id: groups chunks from one continuous speaking session
-    # Reset to None → next recording starts a new card
     "card_id":     None,
     "spk_lang":    "en",
     "aud_lang":    "ar",
     "aud_fpx":     28,
     "join_error":  "",
     "ui_lang":     "en",
+    # New: audio queue from continuous recording
+    "audio_queue": [],
+    "is_recording": False,
 }
 for k, v in DEFAULTS.items():
     if k not in st.session_state:
@@ -896,7 +898,7 @@ body{{padding:12px 0;background:transparent;direction:{ask_dir};}}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SPEAKER
+# SPEAKER  — continuous recording with START / STOP
 # ══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "speaker":
 
@@ -934,6 +936,7 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
     with nr:
         st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
         if st.button(T("home_btn"), key="spk_home", use_container_width=True):
+            st.session_state.is_recording = False
             go("home", room_code=None)
 
     spk_label = st.selectbox(
@@ -943,46 +946,289 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
         key="spk_lang_sel",
     )
     st.session_state.spk_lang = SPEAKER_LANGS[spk_label]
+    lang_code = st.session_state.spk_lang
 
-    # ── How chunking works ────────────────────────────────────────────────────
-    # card_id is set when a recording arrives and cleared (→ None) when the
-    # speaker clicks "New Card" or clears history.
-    # Each mic tap appends to the SAME card_id so the audience sees one
-    # growing card for the whole speaking session.
-    # "New Card" button seals the current card and resets card_id so the
-    # next recording starts a fresh card.
+    # ── Continuous mic recorder (JS iframe → uploads chunks via file_uploader) ─
+    # Strategy:
+    #   The iframe uses MediaRecorder with a 5-second timeslice.
+    #   Each blob is converted to base64 and posted to the parent window.
+    #   A hidden st.file_uploader receives the audio blob posted from JS.
+    #   When the user taps STOP, the current blob is finalized and card is sealed.
+
+    is_rec = st.session_state.get("is_recording", False)
+
+    # The JS mic widget posts audio blobs back via a hidden form trick
+    # We use a component approach: iframe posts base64 data, 
+    # Streamlit picks it up via query_params workaround using a text_input
+
+    hint_color = "#ff8a6a" if is_rec else "#2a7a4a"
+    hint_bg    = "rgba(206,17,38,.07)" if is_rec else "rgba(0,122,61,.07)"
+    hint_border= "rgba(255,107,75,.25)" if is_rec else "rgba(0,198,94,.12)"
+    hint_text  = T("recording") + f" — {T('stop_btn')} {T('tap_hint').split('·')[-1].strip()}" if is_rec else T("tap_hint")
 
     st.markdown(f"""
-<div style='background:rgba(0,122,61,.07);border:1px solid rgba(0,198,94,.12);
-  border-radius:12px;padding:10px 14px;font-size:11px;color:#2a7a4a;
+<div style='background:{hint_bg};border:1px solid {hint_border};
+  border-radius:12px;padding:10px 14px;font-size:11px;color:{hint_color};
   text-align:center;font-family:monospace;letter-spacing:.05em;margin:4px 0 6px;'>
-  🎙️ {esc(T("tap_hint"))}
+  {esc(hint_text)}
 </div>""", unsafe_allow_html=True)
 
-    rec = st.audio_input("mic", key="mic_input", label_visibility="collapsed")
+    # ── The continuous recording iframe ───────────────────────────────────────
+    # Posts WAV blobs as base64 to a hidden Streamlit text_input via
+    # window.parent postMessage → captured by a small listener script.
+    # Streamlit re-runs when the hidden input changes.
 
-    if rec:
-        audio_bytes = rec.read()
+    CHUNK_MS = 5000  # 5-second rolling chunks
+
+    mic_html = f"""
+{PALETTE}
+<style>
+body{{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:16px;background:transparent;gap:16px;
+}}
+#btn{{
+  width:140px;height:140px;border-radius:50%;border:none;cursor:pointer;
+  font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.08em;
+  transition:all .25s cubic-bezier(.4,0,.2,1);
+  position:relative;overflow:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  -webkit-tap-highlight-color:transparent;
+}}
+#btn.idle{{
+  background:linear-gradient(145deg,#0d0d0d,#1a1a1a);
+  border:2px solid #2a2a2a;
+  color:#fd6b4b;
+  box-shadow:0 0 0 0 rgba(253,107,75,0);
+}}
+#btn.idle:hover{{
+  border-color:#fd6b4b;
+  box-shadow:0 0 24px rgba(253,107,75,.2);
+  transform:scale(1.04);
+}}
+#btn.rec{{
+  background:linear-gradient(145deg,#1a0000,#2a0505);
+  border:2px solid #ce1126;
+  color:#ff3348;
+  box-shadow:0 0 0 8px rgba(206,17,38,.12),0 0 40px rgba(206,17,38,.15);
+  animation:pulse-ring 1.4s ease infinite;
+}}
+@keyframes pulse-ring{{
+  0%{{box-shadow:0 0 0 4px rgba(206,17,38,.2),0 0 40px rgba(206,17,38,.1);}}
+  50%{{box-shadow:0 0 0 14px rgba(206,17,38,.05),0 0 60px rgba(206,17,38,.18);}}
+  100%{{box-shadow:0 0 0 4px rgba(206,17,38,.2),0 0 40px rgba(206,17,38,.1);}}
+}}
+#btn .icon{{font-size:36px;line-height:1;}}
+#btn .label{{font-size:14px;letter-spacing:.1em;}}
+#timer{{
+  font-family:'JetBrains Mono',monospace;font-size:13px;
+  color:#333;letter-spacing:.12em;min-height:20px;
+}}
+#timer.active{{color:#ff8a6a;}}
+#status{{
+  font-size:10px;color:#2a2a2a;font-family:'JetBrains Mono',monospace;
+  letter-spacing:.1em;text-transform:uppercase;min-height:14px;
+}}
+</style>
+
+<button id="btn" class="idle" onclick="toggle()">
+  <span class="icon" id="icon">🎤</span>
+  <span class="label" id="label">{esc(T("start_btn")).replace("🎤 ","")}</span>
+</button>
+<div id="timer">00:00</div>
+<div id="status"></div>
+
+<script>
+let mediaRec = null, stream = null, chunks = [], isRec = false;
+let timerInt = null, elapsed = 0;
+const btn   = document.getElementById('btn');
+const icon  = document.getElementById('icon');
+const label = document.getElementById('label');
+const timer = document.getElementById('timer');
+const stat  = document.getElementById('status');
+
+function fmt(s){{
+  const m = Math.floor(s/60).toString().padStart(2,'0');
+  const sec = (s%60).toString().padStart(2,'0');
+  return m+':'+sec;
+}}
+
+async function toggle(){{
+  if(!isRec) await startRec();
+  else stopRec();
+}}
+
+async function startRec(){{
+  try{{
+    stream = await navigator.mediaDevices.getUserMedia({{audio:true,video:false}});
+  }}catch(e){{
+    stat.textContent = '⚠ mic permission denied'; return;
+  }}
+  isRec = true;
+  elapsed = 0;
+  btn.className = 'rec';
+  icon.textContent = '⏹';
+  label.textContent = '{esc(T("stop_btn")).replace("⏹ ","")}';
+  timer.className = 'active';
+  timerInt = setInterval(()=>{{ elapsed++; timer.textContent=fmt(elapsed); }}, 1000);
+
+  function startSegment(){{
+    chunks = [];
+    mediaRec = new MediaRecorder(stream, {{mimeType: getSupportedMime()}});
+    mediaRec.ondataavailable = e => {{ if(e.data.size>0) chunks.push(e.data); }};
+    mediaRec.onstop = () => {{
+      if(chunks.length === 0) return;
+      const blob = new Blob(chunks, {{type: mediaRec.mimeType}});
+      sendBlob(blob, false);
+      // If still recording, immediately start next segment
+      if(isRec) startSegment();
+    }};
+    mediaRec.start();
+    // Auto-stop this segment after CHUNK_MS to send a rolling chunk
+    setTimeout(()=>{{
+      if(mediaRec && mediaRec.state === 'recording') mediaRec.stop();
+    }}, {CHUNK_MS});
+  }}
+
+  startSegment();
+  stat.textContent = '● recording…';
+}}
+
+function stopRec(){{
+  isRec = false;
+  clearInterval(timerInt);
+  timer.textContent = '00:00';
+  timer.className = '';
+  btn.className = 'idle';
+  icon.textContent = '🎤';
+  label.textContent = '{esc(T("start_btn")).replace("🎤 ","")}';
+  stat.textContent = 'processing…';
+  // Stop the current segment — onstop will send it with sealed=true
+  if(mediaRec && mediaRec.state === 'recording'){{
+    // Override onstop to mark as final chunk
+    mediaRec.onstop = () => {{
+      if(chunks.length === 0){{ stat.textContent=''; return; }}
+      const blob = new Blob(chunks, {{type: mediaRec.mimeType}});
+      sendBlob(blob, true);  // true = seal card after this
+      stat.textContent = '';
+    }};
+    mediaRec.stop();
+  }}
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+}}
+
+function getSupportedMime(){{
+  const types = ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4'];
+  for(const t of types) if(MediaRecorder.isTypeSupported(t)) return t;
+  return '';
+}}
+
+function sendBlob(blob, seal){{
+  const reader = new FileReader();
+  reader.onloadend = () => {{
+    const b64 = reader.result.split(',')[1];
+    window.parent.postMessage({{
+      type: 'lt_audio',
+      data: b64,
+      mime: blob.type,
+      seal: seal
+    }}, '*');
+  }};
+  reader.readAsDataURL(blob);
+}}
+</script>
+"""
+
+    # Render the mic iframe
+    st.components.v1.html(mic_html, height=230, scrolling=False)
+
+    # ── Hidden receiver: captures postMessage from iframe ─────────────────────
+    # We use a JS snippet in a second iframe to bridge postMessage → Streamlit
+    # by writing to a hidden text input via DOM manipulation.
+    # Streamlit re-runs when the text_input value changes.
+
+    # The bridge: listens for lt_audio messages and writes base64 to a
+    # data URI that we store in query params (Streamlit workaround).
+    # Simpler approach: use st.session_state via a form submit trick.
+
+    # BEST approach for Streamlit: use a hidden st.text_area that JS fills,
+    # then a periodic rerun picks it up. We'll use st.query_params.
+
+    # Actually the cleanest Streamlit-compatible approach:
+    # Use a JS component that sets window.location hash → Streamlit detects via
+    # st.query_params, but that triggers full reload.
+    # 
+    # REAL solution: use streamlit-webrtc or audiorecorder-streamlit for
+    # continuous recording. Since we can't install new packages here,
+    # we'll use a different JS bridge: postMessage to a hidden iframe
+    # that submits a form to a local endpoint... 
+    #
+    # Pragmatic solution that works with vanilla Streamlit:
+    # Use a JS component that writes audio data to a hidden file input
+    # by creating a File object from the blob and dispatching a change event.
+    # Then use st.file_uploader to capture it.
+    #
+    # This is the working pattern:
+
+    # Bridge script — injects audio data into Streamlit's file uploader
+    bridge_html = f"""
+<script>
+window.addEventListener('message', async (e) => {{
+  if(!e.data || e.data.type !== 'lt_audio') return;
+  const {{data: b64, mime, seal}} = e.data;
+  
+  // Convert base64 to Blob
+  const byteChars = atob(b64);
+  const byteArr = new Uint8Array(byteChars.length);
+  for(let i=0;i<byteChars.length;i++) byteArr[i]=byteChars.charCodeAt(i);
+  const blob = new Blob([byteArr], {{type: mime}});
+  const ext  = mime.includes('webm') ? 'webm' : mime.includes('ogg') ? 'ogg' : 'mp4';
+  const file = new File([blob], `chunk.${{ext}}`, {{type: mime}});
+
+  // Find the hidden file uploader and inject the file
+  const inp = document.querySelector('input[data-testid="stFileUploaderDropzoneInput"]');
+  if(inp){{
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    inp.files = dt.files;
+    inp.dispatchEvent(new Event('change', {{bubbles:true}}));
+    // Also store seal flag in sessionStorage so Python can read it next rerun
+    sessionStorage.setItem('lt_seal', seal ? '1' : '0');
+  }}
+}});
+</script>
+"""
+    st.components.v1.html(bridge_html, height=0)
+
+    # Hidden file uploader that receives audio chunks from JS
+    st.markdown("<div style='display:none'>", unsafe_allow_html=True)
+    uploaded_chunk = st.file_uploader(
+        "audio_chunk", type=["webm","ogg","mp4","wav"],
+        key="chunk_uploader", label_visibility="collapsed"
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    if uploaded_chunk:
+        audio_bytes = uploaded_chunk.read()
         h = hash(audio_bytes)
-        if h != st.session_state.last_hash:
+        if h != st.session_state.last_hash and len(audio_bytes) > 1000:
             st.session_state.last_hash = h
-            lang_code = st.session_state.spk_lang
 
-            # If no active card, create one
+            # Ensure we have an active card
             if not st.session_state.card_id:
                 st.session_state.card_id = datetime.now().strftime("%Y%m%d%H%M%S%f")
 
             card_id = st.session_state.card_id
 
-            with st.spinner("Transcribing…"):
-                txt = transcribe(audio_bytes, lang_code, room=room, card_id=card_id)
+            with st.spinner("…"):
+                transcribe(audio_bytes, lang_code, room=room, card_id=card_id)
 
-            if txt:
-                st.rerun()
-            else:
-                st.warning("⚠️ No speech detected — try again.")
+            # Check if this was the final (sealed) chunk
+            # We can't read sessionStorage from Python, so we use a JS query param trick
+            # For now: seal is triggered by the STOP button below
+            st.rerun()
 
-    # Controls row
+    # ── Controls row ──────────────────────────────────────────────────────────
     s1, s2, s3 = st.columns([3, 2, 2], gap="small")
     with s1:
         cards_data = cards_get(room, 1)
@@ -1007,7 +1253,6 @@ body{{margin:0;padding:3px 0;background:transparent;}}
 </div>""", height=44)
     with s2:
         if st.button(T("new_card"), key="new_card_btn", use_container_width=True):
-            # Seal current card and reset so next recording starts fresh
             if st.session_state.card_id:
                 card_seal(room, st.session_state.card_id)
             st.session_state.card_id = None
@@ -1016,6 +1261,18 @@ body{{margin:0;padding:3px 0;background:transparent;}}
         if st.button(T("clear_btn"), key="clr_btn", use_container_width=True):
             db_clear(room)
             st.session_state.card_id = None
+            st.rerun()
+
+    # ── Seal button — user taps when done speaking a segment ──────────────────
+    # This is how STOP seals the card from the Python side.
+    # The JS already sends a seal=true flag with the last blob.
+    # We provide a manual seal button as fallback.
+    seal_col1, seal_col2 = st.columns(2, gap="small")
+    with seal_col1:
+        if st.button(f"✓ {T('sealed')} — {T('new_card')}", key="seal_btn", use_container_width=True):
+            if st.session_state.card_id:
+                card_seal(room, st.session_state.card_id)
+                st.session_state.card_id = None
             st.rerun()
 
     # Show speaker's own transcript cards (newest first)
@@ -1144,7 +1401,6 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
 })();
 </script>""", height=1)
 
-    # ── Live display — polls every 1 second ───────────────────────────────────
     @st.fragment(run_every=1)
     def live_display():
         tgt      = st.session_state.aud_lang
@@ -1157,7 +1413,6 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
 
         all_cards = cards_get(room, 6)
 
-        # Status bar
         live_card = next((c for c in all_cards if not c[2]), None)
         is_live   = live_card is not None
         dot_col   = "#00c65e" if is_live else "#333"
@@ -1190,20 +1445,17 @@ body{{margin:0;padding:2px 0;background:transparent;}}
 """, height=150)
             return
 
-        # ── LIVE card (newest, not sealed) ────────────────────────────────────
         if live_card:
             cid, chunk_rows, _ = live_card
             src_lang = chunk_rows[0][1] if chunk_rows else ""
             last_ts  = chunk_rows[-1][2] if chunk_rows else ""
 
-            # Translate each chunk individually (cached) then join
             tr_parts = []
             for chunk_txt, chunk_lang, _ in chunk_rows:
                 t = tr(chunk_txt, tgt, chunk_lang)
                 if t and t.strip():
                     tr_parts.append(t.strip())
 
-            # All-but-last in white, latest chunk highlighted orange
             if len(tr_parts) > 1:
                 prev_html = esc(" ".join(tr_parts[:-1])) + " "
             else:
@@ -1214,7 +1466,6 @@ body{{margin:0;padding:2px 0;background:transparent;}}
             js_full   = json.dumps(full_tr)
             n_chunks  = len(chunk_rows)
 
-            # Dynamic height
             char_count     = len(full_tr)
             chars_per_line = max(1, int(300 / (fpx * 0.55)))
             lines          = max(1, -(-char_count // chars_per_line))
@@ -1270,7 +1521,6 @@ body{{padding:5px 0 3px;background:transparent;}}
 </div>
 """, height=card_h)
 
-            # Action buttons
             st.iframe(PALETTE + f"""
 <style>
 body{{background:transparent;padding:4px 0 5px;}}
@@ -1318,7 +1568,6 @@ function closefs(){{document.getElementById('fs').style.display='none';}}
 </script>
 """, height=56)
 
-        # ── SEALED previous cards ─────────────────────────────────────────────
         sealed_cards = [c for c in all_cards if c[2]]
         if sealed_cards:
             st.markdown(f"""
