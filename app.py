@@ -47,12 +47,12 @@ UI_STRINGS = {
         "back": "← Back",
         "ask_speaker": "Ask the <b>Speaker</b> for the 4-digit room code.<br>Each room is private — only that room's subtitles appear.",
         "speak_now": "SPEAK NOW",
-        "tap_mic": "Tap START · speak continuously · tap STOP when done",
+        "tap_mic": "Tap mic to START · speak freely · tap again to STOP",
         "speaking_lang": "Speaking language",
-        "tap_hint": "🎙️  press START · speak freely · press STOP to finish the segment",
+        "tap_hint": "🎙️  Tap the microphone to start recording · tap again to stop",
         "home_btn": "← Home",
         "clear_btn": "🗑 Clear",
-        "nothing_yet": "Nothing yet — press START above",
+        "nothing_yet": "Nothing yet — tap the microphone above",
         "live_subs": "LIVE SUBS",
         "realtime_subs": "Real-time translated subtitles",
         "language": "Language",
@@ -76,6 +76,8 @@ UI_STRINGS = {
         "start_btn": "🎤 START",
         "stop_btn": "⏹ STOP",
         "recording": "● RECORDING",
+        "transcribing": "⏳ Transcribing…",
+        "tap_to_record": "Tap mic · speak · tap again to stop",
     },
     "fr": {
         "hero_line1": "LIVE",
@@ -97,12 +99,12 @@ UI_STRINGS = {
         "back": "← Retour",
         "ask_speaker": "Demandez le code 4 chiffres au <b>Conférencier</b>.<br>Chaque salle est privée — seuls ses sous-titres apparaissent.",
         "speak_now": "PARLEZ MAINTENANT",
-        "tap_mic": "Appuyez DÉMARRER · parlez librement · ARRÊTER pour terminer",
+        "tap_mic": "Appuyez sur le micro pour DÉMARRER · parlez · appuyez à nouveau pour ARRÊTER",
         "speaking_lang": "Langue de discours",
-        "tap_hint": "🎙️  appuyez DÉMARRER · parlez librement · ARRÊTER pour finir le segment",
+        "tap_hint": "🎙️  Appuyez sur le micro pour commencer · appuyez à nouveau pour arrêter",
         "home_btn": "← Accueil",
         "clear_btn": "🗑 Effacer",
-        "nothing_yet": "Rien encore — appuyez sur DÉMARRER",
+        "nothing_yet": "Rien encore — appuyez sur le micro",
         "live_subs": "SOUS-TITRES",
         "realtime_subs": "Sous-titres traduits en temps réel",
         "language": "Langue",
@@ -126,6 +128,8 @@ UI_STRINGS = {
         "start_btn": "🎤 DÉMARRER",
         "stop_btn": "⏹ ARRÊTER",
         "recording": "● ENREGISTREMENT",
+        "transcribing": "⏳ Transcription…",
+        "tap_to_record": "Micro · parler · micro à nouveau pour arrêter",
     },
     "ar": {
         "hero_line1": "مباشر",
@@ -147,12 +151,12 @@ UI_STRINGS = {
         "back": "→ رجوع",
         "ask_speaker": "اطلب من <b>المتحدث</b> رمز الغرفة المكون من 4 أرقام.<br>كل غرفة خاصة — تظهر ترجمتها فقط.",
         "speak_now": "تحدث الآن",
-        "tap_mic": "اضغط ابدأ · تحدث بحرية · اضغط إيقاف عند الانتهاء",
+        "tap_mic": "اضغط الميكروفون للبدء · تحدث · اضغط مجدداً للإيقاف",
         "speaking_lang": "لغة الحديث",
-        "tap_hint": "🎙️  اضغط ابدأ · تحدث بحرية · اضغط إيقاف لإنهاء المقطع",
+        "tap_hint": "🎙️  اضغط الميكروفون للبدء · اضغط مجدداً للإيقاف",
         "home_btn": "→ الرئيسية",
         "clear_btn": "🗑 مسح",
-        "nothing_yet": "لا شيء بعد — اضغط ابدأ",
+        "nothing_yet": "لا شيء بعد — اضغط الميكروفون",
         "live_subs": "ترجمة مباشرة",
         "realtime_subs": "ترجمة فورية في الوقت الحقيقي",
         "language": "اللغة",
@@ -176,6 +180,8 @@ UI_STRINGS = {
         "start_btn": "🎤 ابدأ",
         "stop_btn": "⏹ إيقاف",
         "recording": "● تسجيل",
+        "transcribing": "⏳ جارٍ التحويل…",
+        "tap_to_record": "ميكروفون · تحدث · ميكروفون للإيقاف",
     },
     "tr": {
         "hero_line1": "CANLI",
@@ -197,12 +203,12 @@ UI_STRINGS = {
         "back": "← Geri",
         "ask_speaker": "<b>Konuşmacıdan</b> 4 haneli oda kodunu isteyin.<br>Her oda özeldir — yalnızca o odanın altyazıları görünür.",
         "speak_now": "KONUŞUN",
-        "tap_mic": "BAŞLAT'a bas · özgürce konuş · DURDUR ile bitir",
+        "tap_mic": "Mikrofona bas · konuş · tekrar bas durdurmak için",
         "speaking_lang": "Konuşma dili",
-        "tap_hint": "🎙️  BAŞLAT'a bas · özgürce konuş · DURDUR ile segmenti bitir",
+        "tap_hint": "🎙️  Mikrofona dokun · konuş · tekrar dokun durdurmak için",
         "home_btn": "← Ana Sayfa",
         "clear_btn": "🗑 Temizle",
-        "nothing_yet": "Henüz bir şey yok — BAŞLAT'a basın",
+        "nothing_yet": "Henüz bir şey yok — mikrofona dokunun",
         "live_subs": "CANLI ALTYAZI",
         "realtime_subs": "Gerçek zamanlı çevrilmiş altyazılar",
         "language": "Dil",
@@ -226,6 +232,8 @@ UI_STRINGS = {
         "start_btn": "🎤 BAŞLAT",
         "stop_btn": "⏹ DURDUR",
         "recording": "● KAYIT",
+        "transcribing": "⏳ Yazıya dökülüyor…",
+        "tap_to_record": "Mikrofon · konuş · mikrofona tekrar bas",
     },
     "es": {
         "hero_line1": "EN VIVO",
@@ -247,12 +255,12 @@ UI_STRINGS = {
         "back": "← Atrás",
         "ask_speaker": "Pide al <b>Orador</b> el código de sala de 4 dígitos.<br>Cada sala es privada — solo aparecen sus subtítulos.",
         "speak_now": "HABLA AHORA",
-        "tap_mic": "Toca INICIAR · habla libremente · DETENER para terminar",
+        "tap_mic": "Toca el micrófono para INICIAR · habla · toca de nuevo para DETENER",
         "speaking_lang": "Idioma de habla",
-        "tap_hint": "🎙️  toca INICIAR · habla libremente · DETENER para finalizar el segmento",
+        "tap_hint": "🎙️  Toca el micrófono para iniciar · toca de nuevo para detener",
         "home_btn": "← Inicio",
         "clear_btn": "🗑 Limpiar",
-        "nothing_yet": "Nada todavía — toca INICIAR arriba",
+        "nothing_yet": "Nada todavía — toca el micrófono arriba",
         "live_subs": "SUBTÍTULOS",
         "realtime_subs": "Subtítulos traducidos en tiempo real",
         "language": "Idioma",
@@ -276,6 +284,8 @@ UI_STRINGS = {
         "start_btn": "🎤 INICIAR",
         "stop_btn": "⏹ DETENER",
         "recording": "● GRABANDO",
+        "transcribing": "⏳ Transcribiendo…",
+        "tap_to_record": "Micrófono · habla · micrófono de nuevo para parar",
     },
 }
 
@@ -353,6 +363,58 @@ div[data-testid="stVerticalBlockBorderWrapper"]{padding:0!important;}
   background:linear-gradient(90deg,#ce1126 0%,#ce1126 33%,#000 33%,#000 66%,#007a3d 66%,#007a3d 100%);
   border-radius:3px;margin:6px 0;
 }
+
+/* ── Audio input recorder styling ── */
+[data-testid="stAudioInput"] {
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  background:transparent!important;
+  padding:8px 0!important;
+}
+[data-testid="stAudioInput"] label {
+  display:none!important;
+}
+[data-testid="stAudioInput"] > div:first-child > div {
+  background:#0a0a0a!important;
+  border:2px solid #1e1e1e!important;
+  border-radius:50%!important;
+  width:140px!important;
+  height:140px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  transition:all .25s cubic-bezier(.4,0,.2,1)!important;
+  box-shadow:0 0 0 0 rgba(253,107,75,0)!important;
+}
+[data-testid="stAudioInput"] > div:first-child > div:hover {
+  border-color:#fd6b4b!important;
+  box-shadow:0 0 28px rgba(253,107,75,.22)!important;
+  transform:scale(1.04)!important;
+}
+[data-testid="stAudioInput"] [aria-label="Record"] {
+  background:transparent!important;
+  color:#fd6b4b!important;
+}
+[data-testid="stAudioInput"] [aria-label="Stop recording"] {
+  background:transparent!important;
+  color:#ff3348!important;
+}
+/* Recording state ring */
+[data-testid="stAudioInput"] > div:first-child > div:has([aria-label="Stop recording"]) {
+  border-color:#ce1126!important;
+  box-shadow:0 0 0 8px rgba(206,17,38,.12),0 0 40px rgba(206,17,38,.18)!important;
+  animation:pulse-ring 1.4s ease infinite!important;
+}
+@keyframes pulse-ring{
+  0%{box-shadow:0 0 0 4px rgba(206,17,38,.2),0 0 40px rgba(206,17,38,.1);}
+  50%{box-shadow:0 0 0 14px rgba(206,17,38,.05),0 0 60px rgba(206,17,38,.22);}
+  100%{box-shadow:0 0 0 4px rgba(206,17,38,.2),0 0 40px rgba(206,17,38,.1);}
+}
+/* Audio playback that appears after recording */
+[data-testid="stAudioInput"] audio {
+  display:none!important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -383,7 +445,7 @@ html,body{
 """
 
 # ── Database ──────────────────────────────────────────────────────────────────
-DB = os.path.join(tempfile.gettempdir(), "lt_pal_v3.db")
+DB = os.path.join(tempfile.gettempdir(), "lt_pal_v4.db")
 
 def _cx():
     return sqlite3.connect(DB, check_same_thread=False, timeout=10)
@@ -638,9 +700,7 @@ DEFAULTS = {
     "aud_fpx":     28,
     "join_error":  "",
     "ui_lang":     "en",
-    # New: audio queue from continuous recording
-    "audio_queue": [],
-    "is_recording": False,
+    "rec_key":     0,          # incremented each time to reset the audio_input widget
 }
 for k, v in DEFAULTS.items():
     if k not in st.session_state:
@@ -682,7 +742,7 @@ if st.session_state.page == "home":
     ui_dir   = "rtl" if rtl else "ltr"
     ui_align = "right" if rtl else "center"
 
-    st.iframe(PALETTE + f"""
+    st.components.v1.html(PALETTE + f"""
 <style>
 body{{
   display:flex;flex-direction:column;align-items:center;
@@ -757,7 +817,7 @@ elif st.session_state.page == "speaker_setup":
     rtl  = is_rtl_ui()
     ui_dir = "rtl" if rtl else "ltr"
 
-    st.iframe(PALETTE + f"""
+    st.components.v1.html(PALETTE + f"""
 <style>
 body{{padding:16px 16px 6px;background:transparent;direction:{ui_dir};}}
 .title{{
@@ -773,7 +833,7 @@ body{{padding:16px 16px 6px;background:transparent;direction:{ui_dir};}}
 <div class="sub">{esc(T("share_code"))}</div>
 """, height=86)
 
-    st.iframe(PALETTE + f"""
+    st.components.v1.html(PALETTE + f"""
 <style>
 body{{
   display:flex;flex-direction:column;align-items:center;
@@ -828,7 +888,7 @@ elif st.session_state.page == "audience_join":
     rtl    = is_rtl_ui()
     ui_dir = "rtl" if rtl else "ltr"
 
-    st.iframe(PALETTE + f"""
+    st.components.v1.html(PALETTE + f"""
 <style>
 body{{padding:16px 16px 6px;background:transparent;direction:{ui_dir};}}
 .title{{
@@ -875,7 +935,7 @@ body{{padding:16px 16px 6px;background:transparent;direction:{ui_dir};}}
             go("home")
 
     ask_dir = "rtl" if rtl else "ltr"
-    st.iframe(PALETTE + f"""
+    st.components.v1.html(PALETTE + f"""
 <style>
 body{{padding:12px 0;background:transparent;direction:{ask_dir};}}
 .tip{{
@@ -898,7 +958,7 @@ body{{padding:12px 0;background:transparent;direction:{ask_dir};}}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SPEAKER  — continuous recording with START / STOP
+# SPEAKER  — tap mic to start, tap again to stop
 # ══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "speaker":
 
@@ -911,7 +971,7 @@ elif st.session_state.page == "speaker":
 
     nl, nr = st.columns([3,1], gap="small")
     with nl:
-        st.iframe(PALETTE + f"""
+        st.components.v1.html(PALETTE + f"""
 <style>
 body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
 .title{{
@@ -936,7 +996,6 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
     with nr:
         st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
         if st.button(T("home_btn"), key="spk_home", use_container_width=True):
-            st.session_state.is_recording = False
             go("home", room_code=None)
 
     spk_label = st.selectbox(
@@ -948,287 +1007,47 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
     st.session_state.spk_lang = SPEAKER_LANGS[spk_label]
     lang_code = st.session_state.spk_lang
 
-    # ── Continuous mic recorder (JS iframe → uploads chunks via file_uploader) ─
-    # Strategy:
-    #   The iframe uses MediaRecorder with a 5-second timeslice.
-    #   Each blob is converted to base64 and posted to the parent window.
-    #   A hidden st.file_uploader receives the audio blob posted from JS.
-    #   When the user taps STOP, the current blob is finalized and card is sealed.
-
-    is_rec = st.session_state.get("is_recording", False)
-
-    # The JS mic widget posts audio blobs back via a hidden form trick
-    # We use a component approach: iframe posts base64 data, 
-    # Streamlit picks it up via query_params workaround using a text_input
-
-    hint_color = "#ff8a6a" if is_rec else "#2a7a4a"
-    hint_bg    = "rgba(206,17,38,.07)" if is_rec else "rgba(0,122,61,.07)"
-    hint_border= "rgba(255,107,75,.25)" if is_rec else "rgba(0,198,94,.12)"
-    hint_text  = T("recording") + f" — {T('stop_btn')} {T('tap_hint').split('·')[-1].strip()}" if is_rec else T("tap_hint")
-
+    # ── Hint banner ───────────────────────────────────────────────────────────
     st.markdown(f"""
-<div style='background:{hint_bg};border:1px solid {hint_border};
-  border-radius:12px;padding:10px 14px;font-size:11px;color:{hint_color};
-  text-align:center;font-family:monospace;letter-spacing:.05em;margin:4px 0 6px;'>
-  {esc(hint_text)}
+<div style='background:rgba(0,122,61,.07);border:1px solid rgba(0,198,94,.15);
+  border-radius:12px;padding:10px 14px;font-size:12px;color:#2a7a4a;
+  text-align:center;font-family:monospace;letter-spacing:.04em;margin:4px 0 2px;'>
+  {esc(T("tap_hint"))}
 </div>""", unsafe_allow_html=True)
 
-    # ── The continuous recording iframe ───────────────────────────────────────
-    # Posts WAV blobs as base64 to a hidden Streamlit text_input via
-    # window.parent postMessage → captured by a small listener script.
-    # Streamlit re-runs when the hidden input changes.
+    # ── The working mic recorder ──────────────────────────────────────────────
+    # st.audio_input: tap once → starts recording (button turns red / pulsing)
+    #                 tap again → stops, returns audio bytes, triggers rerun
+    # We reset the widget after each recording by incrementing rec_key.
 
-    CHUNK_MS = 5000  # 5-second rolling chunks
+    # Centre the widget
+    _, mic_col, _ = st.columns([1, 2, 1])
+    with mic_col:
+        audio_data = st.audio_input(
+            label="",
+            key=f"mic_{st.session_state.rec_key}",
+            label_visibility="collapsed",
+        )
 
-    mic_html = f"""
-{PALETTE}
-<style>
-body{{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:16px;background:transparent;gap:16px;
-}}
-#btn{{
-  width:140px;height:140px;border-radius:50%;border:none;cursor:pointer;
-  font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.08em;
-  transition:all .25s cubic-bezier(.4,0,.2,1);
-  position:relative;overflow:hidden;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-  -webkit-tap-highlight-color:transparent;
-}}
-#btn.idle{{
-  background:linear-gradient(145deg,#0d0d0d,#1a1a1a);
-  border:2px solid #2a2a2a;
-  color:#fd6b4b;
-  box-shadow:0 0 0 0 rgba(253,107,75,0);
-}}
-#btn.idle:hover{{
-  border-color:#fd6b4b;
-  box-shadow:0 0 24px rgba(253,107,75,.2);
-  transform:scale(1.04);
-}}
-#btn.rec{{
-  background:linear-gradient(145deg,#1a0000,#2a0505);
-  border:2px solid #ce1126;
-  color:#ff3348;
-  box-shadow:0 0 0 8px rgba(206,17,38,.12),0 0 40px rgba(206,17,38,.15);
-  animation:pulse-ring 1.4s ease infinite;
-}}
-@keyframes pulse-ring{{
-  0%{{box-shadow:0 0 0 4px rgba(206,17,38,.2),0 0 40px rgba(206,17,38,.1);}}
-  50%{{box-shadow:0 0 0 14px rgba(206,17,38,.05),0 0 60px rgba(206,17,38,.18);}}
-  100%{{box-shadow:0 0 0 4px rgba(206,17,38,.2),0 0 40px rgba(206,17,38,.1);}}
-}}
-#btn .icon{{font-size:36px;line-height:1;}}
-#btn .label{{font-size:14px;letter-spacing:.1em;}}
-#timer{{
-  font-family:'JetBrains Mono',monospace;font-size:13px;
-  color:#333;letter-spacing:.12em;min-height:20px;
-}}
-#timer.active{{color:#ff8a6a;}}
-#status{{
-  font-size:10px;color:#2a2a2a;font-family:'JetBrains Mono',monospace;
-  letter-spacing:.1em;text-transform:uppercase;min-height:14px;
-}}
-</style>
+    # ── Process the recording ─────────────────────────────────────────────────
+    if audio_data is not None:
+        audio_bytes = audio_data.read()
 
-<button id="btn" class="idle" onclick="toggle()">
-  <span class="icon" id="icon">🎤</span>
-  <span class="label" id="label">{esc(T("start_btn")).replace("🎤 ","")}</span>
-</button>
-<div id="timer">00:00</div>
-<div id="status"></div>
-
-<script>
-let mediaRec = null, stream = null, chunks = [], isRec = false;
-let timerInt = null, elapsed = 0;
-const btn   = document.getElementById('btn');
-const icon  = document.getElementById('icon');
-const label = document.getElementById('label');
-const timer = document.getElementById('timer');
-const stat  = document.getElementById('status');
-
-function fmt(s){{
-  const m = Math.floor(s/60).toString().padStart(2,'0');
-  const sec = (s%60).toString().padStart(2,'0');
-  return m+':'+sec;
-}}
-
-async function toggle(){{
-  if(!isRec) await startRec();
-  else stopRec();
-}}
-
-async function startRec(){{
-  try{{
-    stream = await navigator.mediaDevices.getUserMedia({{audio:true,video:false}});
-  }}catch(e){{
-    stat.textContent = '⚠ mic permission denied'; return;
-  }}
-  isRec = true;
-  elapsed = 0;
-  btn.className = 'rec';
-  icon.textContent = '⏹';
-  label.textContent = '{esc(T("stop_btn")).replace("⏹ ","")}';
-  timer.className = 'active';
-  timerInt = setInterval(()=>{{ elapsed++; timer.textContent=fmt(elapsed); }}, 1000);
-
-  function startSegment(){{
-    chunks = [];
-    mediaRec = new MediaRecorder(stream, {{mimeType: getSupportedMime()}});
-    mediaRec.ondataavailable = e => {{ if(e.data.size>0) chunks.push(e.data); }};
-    mediaRec.onstop = () => {{
-      if(chunks.length === 0) return;
-      const blob = new Blob(chunks, {{type: mediaRec.mimeType}});
-      sendBlob(blob, false);
-      // If still recording, immediately start next segment
-      if(isRec) startSegment();
-    }};
-    mediaRec.start();
-    // Auto-stop this segment after CHUNK_MS to send a rolling chunk
-    setTimeout(()=>{{
-      if(mediaRec && mediaRec.state === 'recording') mediaRec.stop();
-    }}, {CHUNK_MS});
-  }}
-
-  startSegment();
-  stat.textContent = '● recording…';
-}}
-
-function stopRec(){{
-  isRec = false;
-  clearInterval(timerInt);
-  timer.textContent = '00:00';
-  timer.className = '';
-  btn.className = 'idle';
-  icon.textContent = '🎤';
-  label.textContent = '{esc(T("start_btn")).replace("🎤 ","")}';
-  stat.textContent = 'processing…';
-  // Stop the current segment — onstop will send it with sealed=true
-  if(mediaRec && mediaRec.state === 'recording'){{
-    // Override onstop to mark as final chunk
-    mediaRec.onstop = () => {{
-      if(chunks.length === 0){{ stat.textContent=''; return; }}
-      const blob = new Blob(chunks, {{type: mediaRec.mimeType}});
-      sendBlob(blob, true);  // true = seal card after this
-      stat.textContent = '';
-    }};
-    mediaRec.stop();
-  }}
-  if(stream) stream.getTracks().forEach(t=>t.stop());
-}}
-
-function getSupportedMime(){{
-  const types = ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4'];
-  for(const t of types) if(MediaRecorder.isTypeSupported(t)) return t;
-  return '';
-}}
-
-function sendBlob(blob, seal){{
-  const reader = new FileReader();
-  reader.onloadend = () => {{
-    const b64 = reader.result.split(',')[1];
-    window.parent.postMessage({{
-      type: 'lt_audio',
-      data: b64,
-      mime: blob.type,
-      seal: seal
-    }}, '*');
-  }};
-  reader.readAsDataURL(blob);
-}}
-</script>
-"""
-
-    # Render the mic iframe
-    st.components.v1.html(mic_html, height=230, scrolling=False)
-
-    # ── Hidden receiver: captures postMessage from iframe ─────────────────────
-    # We use a JS snippet in a second iframe to bridge postMessage → Streamlit
-    # by writing to a hidden text input via DOM manipulation.
-    # Streamlit re-runs when the text_input value changes.
-
-    # The bridge: listens for lt_audio messages and writes base64 to a
-    # data URI that we store in query params (Streamlit workaround).
-    # Simpler approach: use st.session_state via a form submit trick.
-
-    # BEST approach for Streamlit: use a hidden st.text_area that JS fills,
-    # then a periodic rerun picks it up. We'll use st.query_params.
-
-    # Actually the cleanest Streamlit-compatible approach:
-    # Use a JS component that sets window.location hash → Streamlit detects via
-    # st.query_params, but that triggers full reload.
-    # 
-    # REAL solution: use streamlit-webrtc or audiorecorder-streamlit for
-    # continuous recording. Since we can't install new packages here,
-    # we'll use a different JS bridge: postMessage to a hidden iframe
-    # that submits a form to a local endpoint... 
-    #
-    # Pragmatic solution that works with vanilla Streamlit:
-    # Use a JS component that writes audio data to a hidden file input
-    # by creating a File object from the blob and dispatching a change event.
-    # Then use st.file_uploader to capture it.
-    #
-    # This is the working pattern:
-
-    # Bridge script — injects audio data into Streamlit's file uploader
-    bridge_html = f"""
-<script>
-window.addEventListener('message', async (e) => {{
-  if(!e.data || e.data.type !== 'lt_audio') return;
-  const {{data: b64, mime, seal}} = e.data;
-  
-  // Convert base64 to Blob
-  const byteChars = atob(b64);
-  const byteArr = new Uint8Array(byteChars.length);
-  for(let i=0;i<byteChars.length;i++) byteArr[i]=byteChars.charCodeAt(i);
-  const blob = new Blob([byteArr], {{type: mime}});
-  const ext  = mime.includes('webm') ? 'webm' : mime.includes('ogg') ? 'ogg' : 'mp4';
-  const file = new File([blob], `chunk.${{ext}}`, {{type: mime}});
-
-  // Find the hidden file uploader and inject the file
-  const inp = document.querySelector('input[data-testid="stFileUploaderDropzoneInput"]');
-  if(inp){{
-    const dt = new DataTransfer();
-    dt.items.add(file);
-    inp.files = dt.files;
-    inp.dispatchEvent(new Event('change', {{bubbles:true}}));
-    // Also store seal flag in sessionStorage so Python can read it next rerun
-    sessionStorage.setItem('lt_seal', seal ? '1' : '0');
-  }}
-}});
-</script>
-"""
-    st.components.v1.html(bridge_html, height=0)
-
-    # Hidden file uploader that receives audio chunks from JS
-    st.markdown("<div style='display:none'>", unsafe_allow_html=True)
-    uploaded_chunk = st.file_uploader(
-        "audio_chunk", type=["webm","ogg","mp4","wav"],
-        key="chunk_uploader", label_visibility="collapsed"
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    if uploaded_chunk:
-        audio_bytes = uploaded_chunk.read()
-        h = hash(audio_bytes)
-        if h != st.session_state.last_hash and len(audio_bytes) > 1000:
-            st.session_state.last_hash = h
-
+        if len(audio_bytes) > 500:  # ignore empty/near-empty recordings
             # Ensure we have an active card
             if not st.session_state.card_id:
                 st.session_state.card_id = datetime.now().strftime("%Y%m%d%H%M%S%f")
-
             card_id = st.session_state.card_id
 
-            with st.spinner("…"):
+            with st.spinner(T("transcribing")):
                 transcribe(audio_bytes, lang_code, room=room, card_id=card_id)
 
-            # Check if this was the final (sealed) chunk
-            # We can't read sessionStorage from Python, so we use a JS query param trick
-            # For now: seal is triggered by the STOP button below
-            st.rerun()
+        # Increment rec_key → resets st.audio_input so speaker can record again immediately
+        st.session_state.rec_key += 1
+        st.rerun()
 
     # ── Controls row ──────────────────────────────────────────────────────────
+    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
     s1, s2, s3 = st.columns([3, 2, 2], gap="small")
     with s1:
         cards_data = cards_get(room, 1)
@@ -1236,7 +1055,7 @@ window.addEventListener('message', async (e) => {{
         chunk_count = len(active_card[1]) if active_card and not active_card[2] else 0
         status_txt = T("streaming") if (active_card and not active_card[2]) else T("sealed")
         status_col = "#00c65e" if (active_card and not active_card[2]) else "#555"
-        st.iframe(f"""
+        st.components.v1.html(f"""
 <style>
 @keyframes dp{{0%,100%{{opacity:1}}50%{{opacity:.25}}}}
 body{{margin:0;padding:3px 0;background:transparent;}}
@@ -1263,22 +1082,10 @@ body{{margin:0;padding:3px 0;background:transparent;}}
             st.session_state.card_id = None
             st.rerun()
 
-    # ── Seal button — user taps when done speaking a segment ──────────────────
-    # This is how STOP seals the card from the Python side.
-    # The JS already sends a seal=true flag with the last blob.
-    # We provide a manual seal button as fallback.
-    seal_col1, seal_col2 = st.columns(2, gap="small")
-    with seal_col1:
-        if st.button(f"✓ {T('sealed')} — {T('new_card')}", key="seal_btn", use_container_width=True):
-            if st.session_state.card_id:
-                card_seal(room, st.session_state.card_id)
-                st.session_state.card_id = None
-            st.rerun()
-
-    # Show speaker's own transcript cards (newest first)
+    # ── Transcript cards ──────────────────────────────────────────────────────
     all_cards = cards_get(room, 6)
     if not all_cards:
-        st.iframe(PALETTE + f"""
+        st.components.v1.html(PALETTE + f"""
 <style>body{{padding:28px 0;text-align:center;background:transparent;}}</style>
 <div style='font-size:38px;margin-bottom:8px;'>🎙️</div>
 <div style='font-size:13px;color:#2a2a2a;font-family:"Cairo",sans-serif;'>
@@ -1312,7 +1119,7 @@ body{{margin:0;padding:3px 0;background:transparent;}}
   <div class="htxt" dir="{d}" style="{rs}font-family:{tf};">{esc(full_txt)}</div>
 </div>"""
 
-        st.iframe(PALETTE + f"""
+        st.components.v1.html(PALETTE + f"""
 <style>
 body{{background:transparent;padding:4px 0 24px;}}
 .hc{{background:#070707;border:1px solid #161616;border-radius:14px;
@@ -1345,7 +1152,7 @@ elif st.session_state.page == "audience":
 
     al, ar_ = st.columns([3,1], gap="small")
     with al:
-        st.iframe(PALETTE + f"""
+        st.components.v1.html(PALETTE + f"""
 <style>
 body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
 .title{{
@@ -1389,7 +1196,7 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
             st.session_state.aud_fpx = min(64, st.session_state.aud_fpx + 4)
 
     # Wake lock
-    st.iframe("""<script>
+    st.components.v1.html("""<script>
 (async()=>{
   if('wakeLock' in navigator){
     try{await navigator.wakeLock.request('screen');}catch(e){}
@@ -1401,7 +1208,7 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
 })();
 </script>""", height=1)
 
-    @st.fragment(run_every=1)
+    @st.fragment(run_every=2)
     def live_display():
         tgt      = st.session_state.aud_lang
         fpx      = st.session_state.aud_fpx
@@ -1418,7 +1225,7 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
         dot_col   = "#00c65e" if is_live else "#333"
         dot_anim  = "dp 1.2s infinite" if is_live else "none"
         status_lbl = T("streaming") if is_live else T("waiting")
-        st.iframe(f"""
+        st.components.v1.html(f"""
 <style>
 @keyframes dp{{0%,100%{{opacity:1}}50%{{opacity:.15}}}}
 body{{margin:0;padding:2px 0;background:transparent;}}
@@ -1435,7 +1242,7 @@ body{{margin:0;padding:2px 0;background:transparent;}}
 </div>""", height=38)
 
         if not all_cards:
-            st.iframe(PALETTE + f"""
+            st.components.v1.html(PALETTE + f"""
 <style>body{{padding:30px 0;text-align:center;background:transparent;}}</style>
 <div style='font-size:42px;margin-bottom:9px'>⏳</div>
 <div style='font-size:14px;color:#888;font-family:"Cairo","Noto Naskh Arabic",sans-serif;'>
@@ -1471,7 +1278,7 @@ body{{margin:0;padding:2px 0;background:transparent;}}
             lines          = max(1, -(-char_count // chars_per_line))
             card_h         = max(180, lines * (fpx + 12) + 100)
 
-            st.iframe(PALETTE + f"""
+            st.components.v1.html(PALETTE + f"""
 <style>
 body{{padding:5px 0 3px;background:transparent;}}
 .stage{{
@@ -1521,7 +1328,7 @@ body{{padding:5px 0 3px;background:transparent;}}
 </div>
 """, height=card_h)
 
-            st.iframe(PALETTE + f"""
+            st.components.v1.html(PALETTE + f"""
 <style>
 body{{background:transparent;padding:4px 0 5px;}}
 .row{{display:flex;gap:8px;}}
@@ -1596,7 +1403,7 @@ function closefs(){{document.getElementById('fs').style.display='none';}}
 </div>"""
 
             sealed_h = min(50 + len(sealed_cards) * 100, 1600)
-            st.iframe(PALETTE + f"""
+            st.components.v1.html(PALETTE + f"""
 <style>
 body{{background:transparent;padding:2px 0 20px;}}
 .pc{{background:#0d0d0d;border:1px solid #1a1a1a;border-radius:14px;
