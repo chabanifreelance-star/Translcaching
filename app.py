@@ -25,7 +25,6 @@ st.set_page_config(
     page_title="LiveTranslate",
     page_icon="🇵🇸",
     layout="wide",
-    initial_sidebar_ebar="collapsed" if False else "collapsed",
     initial_sidebar_state="collapsed",
 )
 
