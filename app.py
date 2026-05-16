@@ -1,11 +1,31 @@
-import streamlit as st
-import sqlite3, os, tempfile, random, string, html, re, time, json
-from datetime import datetime
+"""
+LiveTranslate — Web Speech API edition
+=======================================
+Architecture
+  Speaker browser  →  Web Speech API (word-by-word)
+                   →  POST /api/chunk   (every interim/final result)
+                   →  SQLite
+  Audience browser →  GET  /api/poll?room=XXXX&since=ID
+                   →  renders translated chunks in real time (1-second polling)
 
+The HTTP micro-server runs in a daemon thread inside the Streamlit process so
+there is NO separate server process to manage.  It listens on a fixed port
+(default 7861) and is reachable by both the speaker and audience browsers
+because they are on the same host as the Streamlit server.
+"""
+
+import streamlit as st
+import sqlite3, os, tempfile, random, string, html, re, time, json, threading
+from datetime import datetime
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import urlparse, parse_qs
+
+# ─────────────────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="LiveTranslate",
     page_icon="🇵🇸",
     layout="wide",
+    initial_sidebar_ebar="collapsed" if False else "collapsed",
     initial_sidebar_state="collapsed",
 )
 
@@ -26,266 +46,160 @@ def rtl_style(lang_code: str) -> str:
 def sanitize_code(raw: str) -> str:
     return re.sub(r"[^0-9]", "", (raw or ""))[:4]
 
+# ─── API port (configurable via env) ─────────────────────────────────────────
+API_PORT = int(os.environ.get("LIVETRANSLATE_API_PORT", "7861"))
+
+# ─── i18n strings ─────────────────────────────────────────────────────────────
 UI_STRINGS = {
     "en": {
-        "hero_line1": "LIVE",
-        "hero_line2": "TRANSLATE",
+        "hero_line1": "LIVE", "hero_line2": "TRANSLATE",
         "app_sub": "Real-time multilingual subtitles",
-        "speaker_btn": "🎤  SPEAKER",
-        "audience_btn": "👥  AUDIENCE",
-        "footer": "faster-whisper · deep-translator · 100% free",
-        "your_room": "YOUR ROOM",
-        "share_code": "Share this code with your audience",
-        "room_code_lbl": "🔑 Room Code",
-        "code_hint": "Tell your audience to enter this code",
-        "enter_speak": "🎤  Enter Room & Speak",
-        "new_code": "🔄  New Code",
-        "back_home": "← Back to Home",
-        "join_room": "JOIN ROOM",
+        "speaker_btn": "🎤  SPEAKER", "audience_btn": "👥  AUDIENCE",
+        "footer": "Web Speech API · deep-translator · 100% free",
+        "your_room": "YOUR ROOM", "share_code": "Share this code with your audience",
+        "room_code_lbl": "🔑 Room Code", "code_hint": "Tell your audience to enter this code",
+        "enter_speak": "🎤  Enter Room & Speak", "new_code": "🔄  New Code",
+        "back_home": "← Back to Home", "join_room": "JOIN ROOM",
         "enter_code": "Enter the 4-digit code from the speaker",
-        "join_btn": "👥  Join Room",
-        "back": "← Back",
-        "ask_speaker": "Ask the <b>Speaker</b> for the 4-digit room code.<br>Each room is private — only that room's subtitles appear.",
-        "speak_now": "SPEAK NOW",
-        "tap_mic": "Tap mic to START · speak freely · tap again to STOP",
+        "join_btn": "👥  Join Room", "back": "← Back",
+        "ask_speaker": "Ask the <b>Speaker</b> for the 4-digit room code.<br>Each room is private.",
+        "speak_now": "SPEAK NOW", "tap_mic": "Tap mic to START · speak freely · tap again to STOP",
         "speaking_lang": "Speaking language",
-        "tap_hint": "🎙️  Tap the microphone to start recording · tap again to stop",
-        "home_btn": "← Home",
-        "clear_btn": "🗑 Clear",
+        "tap_hint": "🎙️  Tap the microphone to start · tap again to stop",
+        "home_btn": "← Home", "clear_btn": "🗑 Clear",
         "nothing_yet": "Nothing yet — tap the microphone above",
-        "live_subs": "LIVE SUBS",
-        "realtime_subs": "Real-time translated subtitles",
-        "language": "Language",
-        "refresh": "Refresh",
-        "waiting": "Waiting for speaker…",
+        "live_subs": "LIVE SUBS", "realtime_subs": "Real-time translated subtitles",
+        "language": "Language", "refresh": "Refresh", "waiting": "Waiting for speaker…",
         "will_broadcast": "The speaker will broadcast to this room",
-        "speak_aloud": "🔊 Aloud",
-        "copy_btn": "📋 Copy",
-        "full_btn": "⛶ Full",
-        "tap_close": "Tap to close",
-        "previous": "─── PREVIOUS ───",
-        "font": "font",
-        "chunks": "chunks",
-        "room": "Room",
-        "live_dot": "🔴 Live",
-        "live_translation": "LIVE TRANSLATION",
+        "speak_aloud": "🔊 Aloud", "copy_btn": "📋 Copy", "full_btn": "⛶ Full",
+        "tap_close": "Tap to close", "previous": "─── PREVIOUS ───",
+        "font": "font", "chunks": "chunks", "room": "Room", "live_dot": "🔴 Live",
+        "streaming": "● streaming", "sealed": "✓ done",
+        "recording": "● LIVE", "new_card": "🆕 New Card",
+        "mic_start": "🎤 START", "mic_stop": "⏹ STOP",
+        "mic_unsupported": "⚠️ Your browser does not support the Web Speech API. Please use Chrome or Edge.",
+        "mic_denied": "⚠️ Microphone permission denied. Please allow microphone access.",
         "original": "Original",
-        "new_card": "🆕 New Card",
-        "streaming": "● streaming",
-        "sealed": "✓ done",
-        "start_btn": "🎤 START",
-        "stop_btn": "⏹ STOP",
-        "recording": "● RECORDING",
-        "transcribing": "⏳ Transcribing…",
-        "tap_to_record": "Tap mic · speak · tap again to stop",
     },
     "fr": {
-        "hero_line1": "LIVE",
-        "hero_line2": "TRADUCTION",
+        "hero_line1": "LIVE", "hero_line2": "TRADUCTION",
         "app_sub": "Multilingues en temps réel",
-        "speaker_btn": "🎤  ORATEUR",
-        "audience_btn": "👥  AUDIENCE",
-        "footer": "faster-whisper · deep-translator · 100% gratuit",
-        "your_room": "VOTRE SALLE",
-        "share_code": "Partagez ce code avec votre audience",
-        "room_code_lbl": "🔑 Code de salle",
-        "code_hint": "Dites à votre audience d'entrer ce code",
-        "enter_speak": "🎤  Entrer & Parler",
-        "new_code": "🔄  Nouveau Code",
-        "back_home": "← Retour à l'accueil",
-        "join_room": "REJOINDRE",
+        "speaker_btn": "🎤  ORATEUR", "audience_btn": "👥  AUDIENCE",
+        "footer": "Web Speech API · deep-translator · 100% gratuit",
+        "your_room": "VOTRE SALLE", "share_code": "Partagez ce code avec votre audience",
+        "room_code_lbl": "🔑 Code de salle", "code_hint": "Dites à votre audience d'entrer ce code",
+        "enter_speak": "🎤  Entrer & Parler", "new_code": "🔄  Nouveau Code",
+        "back_home": "← Retour à l'accueil", "join_room": "REJOINDRE",
         "enter_code": "Entrez le code 4 chiffres du conférencier",
-        "join_btn": "👥  Rejoindre",
-        "back": "← Retour",
-        "ask_speaker": "Demandez le code 4 chiffres au <b>Conférencier</b>.<br>Chaque salle est privée — seuls ses sous-titres apparaissent.",
-        "speak_now": "PARLEZ MAINTENANT",
-        "tap_mic": "Appuyez sur le micro pour DÉMARRER · parlez · appuyez à nouveau pour ARRÊTER",
+        "join_btn": "👥  Rejoindre", "back": "← Retour",
+        "ask_speaker": "Demandez le code 4 chiffres au <b>Conférencier</b>.<br>Chaque salle est privée.",
+        "speak_now": "PARLEZ MAINTENANT", "tap_mic": "Appuyez sur le micro pour DÉMARRER",
         "speaking_lang": "Langue de discours",
-        "tap_hint": "🎙️  Appuyez sur le micro pour commencer · appuyez à nouveau pour arrêter",
-        "home_btn": "← Accueil",
-        "clear_btn": "🗑 Effacer",
+        "tap_hint": "🎙️  Appuyez sur le micro pour commencer",
+        "home_btn": "← Accueil", "clear_btn": "🗑 Effacer",
         "nothing_yet": "Rien encore — appuyez sur le micro",
-        "live_subs": "SOUS-TITRES",
-        "realtime_subs": "Sous-titres traduits en temps réel",
-        "language": "Langue",
-        "refresh": "Rafraîchir",
-        "waiting": "En attente du conférencier…",
+        "live_subs": "SOUS-TITRES", "realtime_subs": "Sous-titres traduits en temps réel",
+        "language": "Langue", "refresh": "Rafraîchir", "waiting": "En attente du conférencier…",
         "will_broadcast": "Le conférencier diffusera dans cette salle",
-        "speak_aloud": "🔊 À voix haute",
-        "copy_btn": "📋 Copier",
-        "full_btn": "⛶ Plein",
-        "tap_close": "Appuyer pour fermer",
-        "previous": "─── PRÉCÉDENT ───",
-        "font": "police",
-        "chunks": "chunks",
-        "room": "Salle",
-        "live_dot": "🔴 En direct",
-        "live_translation": "TRADUCTION EN DIRECT",
+        "speak_aloud": "🔊 À voix haute", "copy_btn": "📋 Copier", "full_btn": "⛶ Plein",
+        "tap_close": "Appuyer pour fermer", "previous": "─── PRÉCÉDENT ───",
+        "font": "police", "chunks": "chunks", "room": "Salle", "live_dot": "🔴 En direct",
+        "streaming": "● diffusion", "sealed": "✓ terminé",
+        "recording": "● EN DIRECT", "new_card": "🆕 Nouvelle carte",
+        "mic_start": "🎤 DÉMARRER", "mic_stop": "⏹ ARRÊTER",
+        "mic_unsupported": "⚠️ Votre navigateur ne supporte pas Web Speech API. Utilisez Chrome.",
+        "mic_denied": "⚠️ Permission microphone refusée.",
         "original": "Original",
-        "new_card": "🆕 Nouvelle carte",
-        "streaming": "● diffusion",
-        "sealed": "✓ terminé",
-        "start_btn": "🎤 DÉMARRER",
-        "stop_btn": "⏹ ARRÊTER",
-        "recording": "● ENREGISTREMENT",
-        "transcribing": "⏳ Transcription…",
-        "tap_to_record": "Micro · parler · micro à nouveau pour arrêter",
     },
     "ar": {
-        "hero_line1": "مباشر",
-        "hero_line2": "ترجمة",
+        "hero_line1": "مباشر", "hero_line2": "ترجمة",
         "app_sub": "ترجمة فورية متعددة اللغات",
-        "speaker_btn": "🎤  المتحدث",
-        "audience_btn": "👥  الجمهور",
-        "footer": "faster-whisper · deep-translator · مجاني 100%",
-        "your_room": "غرفتك",
-        "share_code": "شارك هذا الرمز مع جمهورك",
-        "room_code_lbl": "🔑 رمز الغرفة",
-        "code_hint": "أخبر جمهورك بإدخال هذا الرمز",
-        "enter_speak": "🎤  ادخل الغرفة وتحدث",
-        "new_code": "🔄  رمز جديد",
-        "back_home": "→ العودة للرئيسية",
-        "join_room": "انضم للغرفة",
+        "speaker_btn": "🎤  المتحدث", "audience_btn": "👥  الجمهور",
+        "footer": "Web Speech API · deep-translator · مجاني 100%",
+        "your_room": "غرفتك", "share_code": "شارك هذا الرمز مع جمهورك",
+        "room_code_lbl": "🔑 رمز الغرفة", "code_hint": "أخبر جمهورك بإدخال هذا الرمز",
+        "enter_speak": "🎤  ادخل الغرفة وتحدث", "new_code": "🔄  رمز جديد",
+        "back_home": "→ العودة للرئيسية", "join_room": "انضم للغرفة",
         "enter_code": "أدخل الرمز المكون من 4 أرقام من المتحدث",
-        "join_btn": "👥  انضم",
-        "back": "→ رجوع",
-        "ask_speaker": "اطلب من <b>المتحدث</b> رمز الغرفة المكون من 4 أرقام.<br>كل غرفة خاصة — تظهر ترجمتها فقط.",
-        "speak_now": "تحدث الآن",
-        "tap_mic": "اضغط الميكروفون للبدء · تحدث · اضغط مجدداً للإيقاف",
+        "join_btn": "👥  انضم", "back": "→ رجوع",
+        "ask_speaker": "اطلب من <b>المتحدث</b> رمز الغرفة.",
+        "speak_now": "تحدث الآن", "tap_mic": "اضغط الميكروفون للبدء",
         "speaking_lang": "لغة الحديث",
-        "tap_hint": "🎙️  اضغط الميكروفون للبدء · اضغط مجدداً للإيقاف",
-        "home_btn": "→ الرئيسية",
-        "clear_btn": "🗑 مسح",
+        "tap_hint": "🎙️  اضغط الميكروفون للبدء",
+        "home_btn": "→ الرئيسية", "clear_btn": "🗑 مسح",
         "nothing_yet": "لا شيء بعد — اضغط الميكروفون",
-        "live_subs": "ترجمة مباشرة",
-        "realtime_subs": "ترجمة فورية في الوقت الحقيقي",
-        "language": "اللغة",
-        "refresh": "تحديث",
-        "waiting": "في انتظار المتحدث…",
+        "live_subs": "ترجمة مباشرة", "realtime_subs": "ترجمة فورية في الوقت الحقيقي",
+        "language": "اللغة", "refresh": "تحديث", "waiting": "في انتظار المتحدث…",
         "will_broadcast": "سيبث المتحدث في هذه الغرفة",
-        "speak_aloud": "🔊 تشغيل",
-        "copy_btn": "📋 نسخ",
-        "full_btn": "⛶ ملء الشاشة",
-        "tap_close": "اضغط للإغلاق",
-        "previous": "─── السابق ───",
-        "font": "خط",
-        "chunks": "مقطع",
-        "room": "غرفة",
-        "live_dot": "🔴 مباشر",
-        "live_translation": "ترجمة فورية",
+        "speak_aloud": "🔊 تشغيل", "copy_btn": "📋 نسخ", "full_btn": "⛶ ملء الشاشة",
+        "tap_close": "اضغط للإغلاق", "previous": "─── السابق ───",
+        "font": "خط", "chunks": "مقطع", "room": "غرفة", "live_dot": "🔴 مباشر",
+        "streaming": "● بث مباشر", "sealed": "✓ انتهى",
+        "recording": "● مباشر", "new_card": "🆕 بطاقة جديدة",
+        "mic_start": "🎤 ابدأ", "mic_stop": "⏹ إيقاف",
+        "mic_unsupported": "⚠️ متصفحك لا يدعم Web Speech API. استخدم Chrome.",
+        "mic_denied": "⚠️ تم رفض إذن الميكروفون.",
         "original": "النص الأصلي",
-        "new_card": "🆕 بطاقة جديدة",
-        "streaming": "● بث مباشر",
-        "sealed": "✓ انتهى",
-        "start_btn": "🎤 ابدأ",
-        "stop_btn": "⏹ إيقاف",
-        "recording": "● تسجيل",
-        "transcribing": "⏳ جارٍ التحويل…",
-        "tap_to_record": "ميكروفون · تحدث · ميكروفون للإيقاف",
     },
     "tr": {
-        "hero_line1": "CANLI",
-        "hero_line2": "ÇEVİRİ",
+        "hero_line1": "CANLI", "hero_line2": "ÇEVİRİ",
         "app_sub": "Gerçek zamanlı çok dilli altyazılar",
-        "speaker_btn": "🎤  KONUŞMACI",
-        "audience_btn": "👥  KATİLİMCILAR",
-        "footer": "faster-whisper · deep-translator · 100% ücretsiz",
-        "your_room": "ODANIZ",
-        "share_code": "Bu kodu izleyicilerinizle paylaşın",
-        "room_code_lbl": "🔑 Oda Kodu",
-        "code_hint": "İzleyicilerinize bu kodu girin deyin",
-        "enter_speak": "🎤  Odaya Gir & Konuş",
-        "new_code": "🔄  Yeni Kod",
-        "back_home": "← Ana Sayfaya Dön",
-        "join_room": "ODAYA KATIL",
+        "speaker_btn": "🎤  KONUŞMACI", "audience_btn": "👥  KATİLİMCILAR",
+        "footer": "Web Speech API · deep-translator · 100% ücretsiz",
+        "your_room": "ODANIZ", "share_code": "Bu kodu izleyicilerinizle paylaşın",
+        "room_code_lbl": "🔑 Oda Kodu", "code_hint": "İzleyicilerinize bu kodu girin deyin",
+        "enter_speak": "🎤  Odaya Gir & Konuş", "new_code": "🔄  Yeni Kod",
+        "back_home": "← Ana Sayfaya Dön", "join_room": "ODAYA KATIL",
         "enter_code": "Konuşmacının 4 haneli kodunu girin",
-        "join_btn": "👥  Katıl",
-        "back": "← Geri",
-        "ask_speaker": "<b>Konuşmacıdan</b> 4 haneli oda kodunu isteyin.<br>Her oda özeldir — yalnızca o odanın altyazıları görünür.",
-        "speak_now": "KONUŞUN",
-        "tap_mic": "Mikrofona bas · konuş · tekrar bas durdurmak için",
+        "join_btn": "👥  Katıl", "back": "← Geri",
+        "ask_speaker": "<b>Konuşmacıdan</b> 4 haneli oda kodunu isteyin.",
+        "speak_now": "KONUŞUN", "tap_mic": "Mikrofona bas · konuş · tekrar bas",
         "speaking_lang": "Konuşma dili",
-        "tap_hint": "🎙️  Mikrofona dokun · konuş · tekrar dokun durdurmak için",
-        "home_btn": "← Ana Sayfa",
-        "clear_btn": "🗑 Temizle",
+        "tap_hint": "🎙️  Mikrofona dokun · konuş · tekrar dokun",
+        "home_btn": "← Ana Sayfa", "clear_btn": "🗑 Temizle",
         "nothing_yet": "Henüz bir şey yok — mikrofona dokunun",
-        "live_subs": "CANLI ALTYAZI",
-        "realtime_subs": "Gerçek zamanlı çevrilmiş altyazılar",
-        "language": "Dil",
-        "refresh": "Yenile",
-        "waiting": "Konuşmacı bekleniyor…",
+        "live_subs": "CANLI ALTYAZI", "realtime_subs": "Gerçek zamanlı çevrilmiş altyazılar",
+        "language": "Dil", "refresh": "Yenile", "waiting": "Konuşmacı bekleniyor…",
         "will_broadcast": "Konuşmacı bu odaya yayın yapacak",
-        "speak_aloud": "🔊 Sesli",
-        "copy_btn": "📋 Kopyala",
-        "full_btn": "⛶ Tam Ekran",
-        "tap_close": "Kapatmak için dokun",
-        "previous": "─── ÖNCEKİ ───",
-        "font": "yazı tipi",
-        "chunks": "parça",
-        "room": "Oda",
-        "live_dot": "🔴 Canlı",
-        "live_translation": "CANLI ÇEVİRİ",
+        "speak_aloud": "🔊 Sesli", "copy_btn": "📋 Kopyala", "full_btn": "⛶ Tam Ekran",
+        "tap_close": "Kapatmak için dokun", "previous": "─── ÖNCEKİ ───",
+        "font": "yazı tipi", "chunks": "parça", "room": "Oda", "live_dot": "🔴 Canlı",
+        "streaming": "● yayında", "sealed": "✓ bitti",
+        "recording": "● CANLI", "new_card": "🆕 Yeni Kart",
+        "mic_start": "🎤 BAŞLAT", "mic_stop": "⏹ DURDUR",
+        "mic_unsupported": "⚠️ Tarayıcınız Web Speech API'yi desteklemiyor. Chrome kullanın.",
+        "mic_denied": "⚠️ Mikrofon izni reddedildi.",
         "original": "Orijinal",
-        "new_card": "🆕 Yeni Kart",
-        "streaming": "● yayında",
-        "sealed": "✓ bitti",
-        "start_btn": "🎤 BAŞLAT",
-        "stop_btn": "⏹ DURDUR",
-        "recording": "● KAYIT",
-        "transcribing": "⏳ Yazıya dökülüyor…",
-        "tap_to_record": "Mikrofon · konuş · mikrofona tekrar bas",
     },
     "es": {
-        "hero_line1": "EN VIVO",
-        "hero_line2": "TRADUCIR",
+        "hero_line1": "EN VIVO", "hero_line2": "TRADUCIR",
         "app_sub": "Subtítulos multilingües en tiempo real",
-        "speaker_btn": "🎤  ORADOR",
-        "audience_btn": "👥  AUDIENCIA",
-        "footer": "faster-whisper · deep-translator · 100% gratis",
-        "your_room": "TU SALA",
-        "share_code": "Comparte este código con tu audiencia",
-        "room_code_lbl": "🔑 Código de sala",
-        "code_hint": "Dile a tu audiencia que ingrese este código",
-        "enter_speak": "🎤  Entrar & Hablar",
-        "new_code": "🔄  Nuevo Código",
-        "back_home": "← Volver al inicio",
-        "join_room": "UNIRSE A SALA",
+        "speaker_btn": "🎤  ORADOR", "audience_btn": "👥  AUDIENCIA",
+        "footer": "Web Speech API · deep-translator · 100% gratis",
+        "your_room": "TU SALA", "share_code": "Comparte este código con tu audiencia",
+        "room_code_lbl": "🔑 Código de sala", "code_hint": "Dile a tu audiencia que ingrese este código",
+        "enter_speak": "🎤  Entrar & Hablar", "new_code": "🔄  Nuevo Código",
+        "back_home": "← Volver al inicio", "join_room": "UNIRSE A SALA",
         "enter_code": "Ingresa el código de 4 dígitos del orador",
-        "join_btn": "👥  Unirse",
-        "back": "← Atrás",
-        "ask_speaker": "Pide al <b>Orador</b> el código de sala de 4 dígitos.<br>Cada sala es privada — solo aparecen sus subtítulos.",
-        "speak_now": "HABLA AHORA",
-        "tap_mic": "Toca el micrófono para INICIAR · habla · toca de nuevo para DETENER",
+        "join_btn": "👥  Unirse", "back": "← Atrás",
+        "ask_speaker": "Pide al <b>Orador</b> el código de sala de 4 dígitos.",
+        "speak_now": "HABLA AHORA", "tap_mic": "Toca el micrófono para INICIAR",
         "speaking_lang": "Idioma de habla",
-        "tap_hint": "🎙️  Toca el micrófono para iniciar · toca de nuevo para detener",
-        "home_btn": "← Inicio",
-        "clear_btn": "🗑 Limpiar",
+        "tap_hint": "🎙️  Toca el micrófono para iniciar",
+        "home_btn": "← Inicio", "clear_btn": "🗑 Limpiar",
         "nothing_yet": "Nada todavía — toca el micrófono arriba",
-        "live_subs": "SUBTÍTULOS",
-        "realtime_subs": "Subtítulos traducidos en tiempo real",
-        "language": "Idioma",
-        "refresh": "Refrescar",
-        "waiting": "Esperando al orador…",
+        "live_subs": "SUBTÍTULOS", "realtime_subs": "Subtítulos traducidos en tiempo real",
+        "language": "Idioma", "refresh": "Refrescar", "waiting": "Esperando al orador…",
         "will_broadcast": "El orador transmitirá a esta sala",
-        "speak_aloud": "🔊 En voz alta",
-        "copy_btn": "📋 Copiar",
-        "full_btn": "⛶ Pantalla completa",
-        "tap_close": "Toca para cerrar",
-        "previous": "─── ANTERIORES ───",
-        "font": "fuente",
-        "chunks": "partes",
-        "room": "Sala",
-        "live_dot": "🔴 En vivo",
-        "live_translation": "TRADUCCIÓN EN VIVO",
+        "speak_aloud": "🔊 En voz alta", "copy_btn": "📋 Copiar", "full_btn": "⛶ Pantalla completa",
+        "tap_close": "Toca para cerrar", "previous": "─── ANTERIORES ───",
+        "font": "fuente", "chunks": "partes", "room": "Sala", "live_dot": "🔴 En vivo",
+        "streaming": "● en vivo", "sealed": "✓ listo",
+        "recording": "● EN VIVO", "new_card": "🆕 Nueva tarjeta",
+        "mic_start": "🎤 INICIAR", "mic_stop": "⏹ DETENER",
+        "mic_unsupported": "⚠️ Tu navegador no soporta Web Speech API. Usa Chrome.",
+        "mic_denied": "⚠️ Permiso de micrófono denegado.",
         "original": "Original",
-        "new_card": "🆕 Nueva tarjeta",
-        "streaming": "● en vivo",
-        "sealed": "✓ listo",
-        "start_btn": "🎤 INICIAR",
-        "stop_btn": "⏹ DETENER",
-        "recording": "● GRABANDO",
-        "transcribing": "⏳ Transcribiendo…",
-        "tap_to_record": "Micrófono · habla · micrófono de nuevo para parar",
     },
 }
 
@@ -296,156 +210,11 @@ def T(key: str) -> str:
 def is_rtl_ui() -> bool:
     return st.session_state.get("ui_lang", "en") == "ar"
 
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cairo:wght@400;600;700;900&family=Noto+Naskh+Arabic:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
-
-#MainMenu,header,footer,
-[data-testid="stSidebar"],
-[data-testid="collapsedControl"],
-[data-testid="stStatusWidget"]{display:none!important;}
-
-.stApp{background:#050505!important;}
-.block-container{padding:0!important;max-width:100%!important;}
-body,html{overflow-x:hidden!important;}
-
-.stButton>button{
-  background:linear-gradient(135deg,#0a0a0a,#111)!important;
-  border:1px solid #222!important;
-  color:#f2ede3!important;
-  border-radius:14px!important;
-  font-weight:700!important;
-  font-size:13px!important;
-  padding:12px 8px!important;
-  width:100%!important;
-  font-family:'Cairo',sans-serif!important;
-  letter-spacing:.04em!important;
-  transition:all .2s cubic-bezier(.4,0,.2,1)!important;
-}
-.stButton>button:hover{
-  background:linear-gradient(135deg,#111,#181818)!important;
-  border-color:#007a3d!important;
-  transform:translateY(-1px)!important;
-  box-shadow:0 4px 20px rgba(0,122,61,.18)!important;
-}
-.stButton>button:active{transform:translateY(0)!important;}
-
-.stTextInput>div>div>input{
-  background:#080808!important;
-  border:1px solid #222!important;
-  color:#f2ede3!important;
-  border-radius:14px!important;
-  font-size:24px!important;
-  text-align:center!important;
-  letter-spacing:10px!important;
-  font-weight:700!important;
-  font-family:'JetBrains Mono',monospace!important;
-  padding:16px!important;
-  transition:border-color .2s!important;
-}
-.stTextInput>div>div>input:focus{
-  border-color:#007a3d!important;
-  box-shadow:0 0 0 2px rgba(0,122,61,.12)!important;
-}
-.stTextInput label{
-  color:#444!important;font-size:10px!important;
-  letter-spacing:.18em!important;text-transform:uppercase!important;
-  font-family:'JetBrains Mono',monospace!important;
-}
-.stSelectbox>div>div{
-  background:#080808!important;border:1px solid #222!important;
-  border-radius:12px!important;color:#f2ede3!important;
-}
-iframe{display:block!important;}
-div[data-testid="stVerticalBlockBorderWrapper"]{padding:0!important;}
-.pal-divider{
-  height:3px;
-  background:linear-gradient(90deg,#ce1126 0%,#ce1126 33%,#000 33%,#000 66%,#007a3d 66%,#007a3d 100%);
-  border-radius:3px;margin:6px 0;
-}
-
-/* ── Audio input recorder styling ── */
-[data-testid="stAudioInput"] {
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:center!important;
-  background:transparent!important;
-  padding:8px 0!important;
-}
-[data-testid="stAudioInput"] label {
-  display:none!important;
-}
-[data-testid="stAudioInput"] > div:first-child > div {
-  background:#0a0a0a!important;
-  border:2px solid #1e1e1e!important;
-  border-radius:50%!important;
-  width:140px!important;
-  height:140px!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  transition:all .25s cubic-bezier(.4,0,.2,1)!important;
-  box-shadow:0 0 0 0 rgba(253,107,75,0)!important;
-}
-[data-testid="stAudioInput"] > div:first-child > div:hover {
-  border-color:#fd6b4b!important;
-  box-shadow:0 0 28px rgba(253,107,75,.22)!important;
-  transform:scale(1.04)!important;
-}
-[data-testid="stAudioInput"] [aria-label="Record"] {
-  background:transparent!important;
-  color:#fd6b4b!important;
-}
-[data-testid="stAudioInput"] [aria-label="Stop recording"] {
-  background:transparent!important;
-  color:#ff3348!important;
-}
-/* Recording state ring */
-[data-testid="stAudioInput"] > div:first-child > div:has([aria-label="Stop recording"]) {
-  border-color:#ce1126!important;
-  box-shadow:0 0 0 8px rgba(206,17,38,.12),0 0 40px rgba(206,17,38,.18)!important;
-  animation:pulse-ring 1.4s ease infinite!important;
-}
-@keyframes pulse-ring{
-  0%{box-shadow:0 0 0 4px rgba(206,17,38,.2),0 0 40px rgba(206,17,38,.1);}
-  50%{box-shadow:0 0 0 14px rgba(206,17,38,.05),0 0 60px rgba(206,17,38,.22);}
-  100%{box-shadow:0 0 0 4px rgba(206,17,38,.2),0 0 40px rgba(206,17,38,.1);}
-}
-/* Audio playback that appears after recording */
-[data-testid="stAudioInput"] audio {
-  display:none!important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-PALETTE = """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cairo:wght@400;600;700;900&family=Noto+Naskh+Arabic:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
-:root{
-  --bg:#050505;--card:#080808;--b:#1a1a1a;--b2:#252525;
-  --white:#f2ede3;--dim:#222;
-  --green:#007a3d;--gl:#00c65e;
-  --red:#ce1126;--rl:#ff3348;
-  --black:#000;
-  --melon:#fd6b4b;--ml:#ff8a6a;
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html,body{
-  background:transparent;color:var(--white);
-  font-family:'Cairo','Noto Naskh Arabic',sans-serif;
-  -webkit-font-smoothing:antialiased;overflow-x:hidden;
-}
-.rtl-text{
-  direction:rtl;text-align:right;unicode-bidi:embed;
-  font-family:'Noto Naskh Arabic','Cairo',sans-serif;
-  font-feature-settings:"kern" 1,"liga" 1,"calt" 1;
-}
-.ltr-text{direction:ltr;text-align:left;unicode-bidi:embed;font-family:'Cairo',sans-serif;}
-</style>
-"""
-
-# ── Database ──────────────────────────────────────────────────────────────────
-DB = os.path.join(tempfile.gettempdir(), "lt_pal_v4.db")
+# ─────────────────────────────────────────────────────────────────────────────
+# Database
+# ─────────────────────────────────────────────────────────────────────────────
+DB = os.path.join(tempfile.gettempdir(), "lt_webspeech_v1.db")
+_db_lock = threading.Lock()
 
 def _cx():
     return sqlite3.connect(DB, check_same_thread=False, timeout=10)
@@ -460,10 +229,13 @@ def init_db():
             card_id   TEXT    NOT NULL,
             txt       TEXT    NOT NULL,
             lang      TEXT    DEFAULT '',
+            interim   INTEGER DEFAULT 0,
             sealed    INTEGER DEFAULT 0,
             ts        TEXT    NOT NULL)""")
         c.execute("""CREATE TABLE IF NOT EXISTS rate_limit(
             room TEXT PRIMARY KEY, last_save REAL NOT NULL, count INTEGER DEFAULT 0)""")
+        # index for fast audience polling
+        c.execute("CREATE INDEX IF NOT EXISTS idx_chunks_room_id ON chunks(room,id)")
         c.commit()
 
 def room_create(code):
@@ -478,7 +250,7 @@ def room_exists(code):
     with _cx() as c:
         return c.execute("SELECT 1 FROM rooms WHERE code=?", (code,)).fetchone() is not None
 
-def _check_rate_limit(room: str, max_per_minute: int = 60) -> bool:
+def _check_rate_limit(room: str, max_per_minute: int = 120) -> bool:
     now = time.time()
     with _cx() as c:
         row = c.execute("SELECT last_save, count FROM rate_limit WHERE room=?", (room,)).fetchone()
@@ -494,55 +266,75 @@ def _check_rate_limit(room: str, max_per_minute: int = 60) -> bool:
         c.execute("UPDATE rate_limit SET count=count+1 WHERE room=?", (room,))
         c.commit(); return True
 
-def chunk_save(room: str, card_id: str, txt: str, lang: str) -> bool:
-    try:
-        if not _check_rate_limit(room):
-            return False
-        clean = txt.strip()[:2000]
-        if not clean:
-            return False
-        with _cx() as c:
+def chunk_upsert(room: str, card_id: str, chunk_id: str,
+                 txt: str, lang: str, interim: bool) -> int | None:
+    """
+    Insert or replace a chunk.  chunk_id is a client-generated key like
+    card_id + ':' + sequence_number.  Returns the row id on success.
+    """
+    if not _check_rate_limit(room):
+        return None
+    clean = txt.strip()[:2000]
+    if not clean:
+        return None
+    ts = datetime.now().strftime("%H:%M:%S")
+    with _db_lock, _cx() as c:
+        # delete previous interim for the same logical slot (overwrite)
+        if interim:
             c.execute(
-                "INSERT INTO chunks(room,card_id,txt,lang,sealed,ts) VALUES(?,?,?,?,0,?)",
-                (room, card_id, clean, lang, datetime.now().strftime("%H:%M")))
-            c.commit()
-        return True
-    except Exception:
-        return False
+                "DELETE FROM chunks WHERE room=? AND card_id=? AND chunk_id=? AND interim=1",
+                (room, card_id, chunk_id))
+        c.execute(
+            """INSERT INTO chunks(room,card_id,chunk_id,txt,lang,interim,sealed,ts)
+               VALUES(?,?,?,?,?,?,0,?)
+               ON CONFLICT(room,card_id,chunk_id) DO UPDATE SET
+                 txt=excluded.txt, lang=excluded.lang,
+                 interim=excluded.interim, ts=excluded.ts""",
+            (room, card_id, chunk_id, clean, lang, 1 if interim else 0, ts))
+        c.commit()
+        row = c.execute("SELECT id FROM chunks WHERE room=? AND card_id=? AND chunk_id=?",
+                        (room, card_id, chunk_id)).fetchone()
+        return row[0] if row else None
 
 def card_seal(room: str, card_id: str):
-    try:
-        with _cx() as c:
-            c.execute("UPDATE chunks SET sealed=1 WHERE room=? AND card_id=?", (room, card_id))
-            c.commit()
-    except Exception:
-        pass
+    with _db_lock, _cx() as c:
+        c.execute("UPDATE chunks SET sealed=1 WHERE room=? AND card_id=?", (room, card_id))
+        c.commit()
+
+def poll_chunks(room: str, since_id: int, limit: int = 50):
+    """Return chunks newer than since_id for audience polling."""
+    with _cx() as c:
+        rows = c.execute(
+            """SELECT id, card_id, txt, lang, interim, sealed, ts
+               FROM chunks WHERE room=? AND id>?
+               ORDER BY id ASC LIMIT ?""",
+            (room, since_id, limit)).fetchall()
+    return [{"id": r[0], "card_id": r[1], "txt": r[2], "lang": r[3],
+             "interim": bool(r[4]), "sealed": bool(r[5]), "ts": r[6]}
+            for r in rows]
 
 def cards_get(room: str, limit: int = 8):
-    try:
-        if not re.fullmatch(r"[0-9]{4}", room or ""):
-            return []
-        with _cx() as c:
-            card_ids = c.execute(
-                """SELECT card_id, MAX(id) as mx, MAX(sealed) as s
-                   FROM chunks WHERE room=?
-                   GROUP BY card_id ORDER BY mx DESC LIMIT ?""",
-                (room, limit)).fetchall()
-            result = []
-            for cid, _, sealed in card_ids:
-                rows = c.execute(
-                    "SELECT txt,lang,ts FROM chunks WHERE room=? AND card_id=? ORDER BY id ASC",
-                    (room, cid)).fetchall()
-                result.append((cid, rows, bool(sealed)))
-            return result
-    except Exception:
-        return []
+    """Return cards for the speaker view (list of (card_id, rows, sealed))."""
+    with _cx() as c:
+        card_ids = c.execute(
+            """SELECT card_id, MAX(id) as mx, MAX(sealed) as s
+               FROM chunks WHERE room=?
+               GROUP BY card_id ORDER BY mx DESC LIMIT ?""",
+            (room, limit)).fetchall()
+        result = []
+        for cid, _, sealed in card_ids:
+            rows = c.execute(
+                "SELECT txt,lang,ts,interim FROM chunks WHERE room=? AND card_id=? ORDER BY id ASC",
+                (room, cid)).fetchall()
+            result.append((cid, rows, bool(sealed)))
+        return result
 
 def db_clear(room: str):
     if not re.fullmatch(r"[0-9]{4}", room or ""):
         return
-    with _cx() as c:
+    with _db_lock, _cx() as c:
         c.execute("DELETE FROM chunks WHERE room=?", (room,))
+        c.execute("DELETE FROM rate_limit WHERE room=?", (room,))
         c.commit()
 
 def gen_code():
@@ -550,93 +342,21 @@ def gen_code():
 
 init_db()
 
-# ── Whisper ───────────────────────────────────────────────────────────────────
-@st.cache_resource(show_spinner=False)
-def get_whisper_base():
-    try:
-        from faster_whisper import WhisperModel
-        try:    return WhisperModel("small", device="cuda", compute_type="float16")
-        except: return WhisperModel("small", device="cpu",  compute_type="int8")
-    except: return None
+# ─────────────────────────────────────────────────────────────────────────────
+# Add chunk_id column if upgrading from old schema
+# ─────────────────────────────────────────────────────────────────────────────
+try:
+    with _cx() as c:
+        c.execute("ALTER TABLE chunks ADD COLUMN chunk_id TEXT DEFAULT ''")
+        c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_chunk_unique ON chunks(room,card_id,chunk_id)")
+        c.commit()
+except Exception:
+    pass
 
-@st.cache_resource(show_spinner=False)
-def get_whisper_arabic():
-    try:
-        from faster_whisper import WhisperModel
-        try:    return WhisperModel("small", device="cuda", compute_type="float16")
-        except: return WhisperModel("small", device="cpu",  compute_type="int8")
-    except: return None
-
-_AR_HALLUCINATIONS = {
-    "شكراً","شكرا","شكراً للمشاهدة","شكرا للمشاهدة",
-    "للمشاهدة","للاستماع","مع السلامة","إلى اللقاء",
-    "أراكم في الحلقة القادمة","تابعونا","اشتركوا في القناة",
-    "سبحان الله","بسم الله الرحمن الرحيم",".","  .","..","..."," ","",
-}
-
-def _is_hallucination(text: str, lang_code: str) -> bool:
-    t = text.strip()
-    if not t or len(t) < 2: return True
-    if lang_code == "ar":
-        if t in _AR_HALLUCINATIONS: return True
-        if sum(1 for c in t if '\u0600' <= c <= '\u06FF') == 0: return True
-    return False
-
-def transcribe(audio_bytes: bytes, lang_code: str, room: str, card_id: str):
-    is_arabic = lang_code == "ar"
-    model = get_whisper_arabic() if is_arabic else get_whisper_base()
-    if not model:
-        model = get_whisper_base()
-    if not model:
-        return ""
-    tmp = None
-    try:
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-            f.write(audio_bytes); tmp = f.name
-        if is_arabic:
-            segs, _ = model.transcribe(
-                tmp, task="transcribe", language="ar",
-                beam_size=1, best_of=1, temperature=0.0,
-                condition_on_previous_text=False,
-                no_speech_threshold=0.6,
-                compression_ratio_threshold=2.0,
-                log_prob_threshold=-0.8,
-                vad_filter=True,
-                vad_parameters={"min_silence_duration_ms":300,"speech_pad_ms":200,"threshold":0.45},
-                initial_prompt="هذا نص باللغة العربية الفصحى.",
-            )
-            parts = []
-            for s in segs:
-                txt = s.text.strip()
-                if _is_hallucination(txt, "ar"): continue
-                if hasattr(s,'avg_logprob') and s.avg_logprob < -1.0: continue
-                if hasattr(s,'compression_ratio') and s.compression_ratio > 2.4: continue
-                parts.append(txt)
-                chunk_save(room, card_id, txt, lang_code)
-            return " ".join(parts).strip()
-        else:
-            segs, _ = model.transcribe(
-                tmp, task="transcribe", language=lang_code,
-                beam_size=5, vad_filter=True,
-                condition_on_previous_text=False,
-                vad_parameters={"min_silence_duration_ms":400},
-            )
-            parts = []
-            for s in segs:
-                txt = s.text.strip()
-                if not txt: continue
-                parts.append(txt)
-                chunk_save(room, card_id, txt, lang_code)
-            return " ".join(parts).strip()
-    except Exception:
-        return ""
-    finally:
-        if tmp:
-            try: os.unlink(tmp)
-            except: pass
-
-# ── Translation ───────────────────────────────────────────────────────────────
-_LANG_MAP = {"zh-cn":"zh-CN","zh-tw":"zh-TW","ar":"ar","he":"iw"}
+# ─────────────────────────────────────────────────────────────────────────────
+# Translation
+# ─────────────────────────────────────────────────────────────────────────────
+_LANG_MAP = {"zh-cn": "zh-CN", "zh-tw": "zh-TW", "ar": "ar", "he": "iw"}
 
 def _norm_for_google(code: str) -> str:
     c = (code or "").strip()
@@ -657,7 +377,7 @@ def tr(text: str, target: str, source: str) -> str:
     if cache_key in _TR_CACHE: return _TR_CACHE[cache_key]
     try:
         from deep_translator import GoogleTranslator
-        use_src = "auto" if src in ("ar","iw","fa","ur") else src
+        use_src = "auto" if src in ("ar", "iw", "fa", "ur") else src
         result = GoogleTranslator(source=use_src, target=tgt).translate(text)
         if not result or not result.strip():
             result = GoogleTranslator(source=src, target=tgt).translate(text)
@@ -669,38 +389,190 @@ def tr(text: str, target: str, source: str) -> str:
     _TR_CACHE[cache_key] = translated
     return translated
 
-# ── Language lists ────────────────────────────────────────────────────────────
-SPEAKER_LANGS = {
-    "🇬🇧 English": "en",
-    "🇸🇦 Arabic":  "ar",
-}
+# ─────────────────────────────────────────────────────────────────────────────
+# Embedded HTTP micro-server  (runs in a daemon thread)
+# ─────────────────────────────────────────────────────────────────────────────
+class _Handler(BaseHTTPRequestHandler):
+    def log_message(self, *a): pass  # silence access logs
 
+    def _send_json(self, data, status=200):
+        body = json.dumps(data).encode()
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
+
+    def do_GET(self):
+        parsed = urlparse(self.path)
+        qs = parse_qs(parsed.query)
+
+        if parsed.path == "/api/poll":
+            room = sanitize_code((qs.get("room", [""])[0]))
+            since = int(qs.get("since", ["0"])[0])
+            tgt   = (qs.get("tgt", ["en"])[0])[:10]
+            if not re.fullmatch(r"[0-9]{4}", room):
+                self._send_json({"error": "bad room"}, 400); return
+            chunks = poll_chunks(room, since)
+            # translate on the fly
+            for ch in chunks:
+                src_lang = ch["lang"] or "en"
+                ch["translated"] = tr(ch["txt"], tgt, src_lang)
+            self._send_json({"chunks": chunks})
+
+        elif parsed.path == "/api/ping":
+            self._send_json({"ok": True})
+
+        else:
+            self.send_response(404); self.end_headers()
+
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length) if length else b""
+
+        if parsed.path == "/api/chunk":
+            try:
+                data = json.loads(body)
+                room    = sanitize_code(data.get("room", ""))
+                card_id = str(data.get("card_id", ""))[:40]
+                chunk_id = str(data.get("chunk_id", ""))[:80]
+                txt     = str(data.get("txt", ""))
+                lang    = str(data.get("lang", "en"))[:10]
+                interim = bool(data.get("interim", False))
+                if not re.fullmatch(r"[0-9]{4}", room) or not txt.strip():
+                    self._send_json({"error": "bad data"}, 400); return
+                row_id = chunk_upsert(room, card_id, chunk_id, txt, lang, interim)
+                self._send_json({"ok": True, "id": row_id})
+            except Exception as e:
+                self._send_json({"error": str(e)}, 500)
+
+        elif parsed.path == "/api/seal":
+            try:
+                data = json.loads(body)
+                room    = sanitize_code(data.get("room", ""))
+                card_id = str(data.get("card_id", ""))[:40]
+                if re.fullmatch(r"[0-9]{4}", room):
+                    card_seal(room, card_id)
+                self._send_json({"ok": True})
+            except Exception as e:
+                self._send_json({"error": str(e)}, 500)
+
+        elif parsed.path == "/api/clear":
+            try:
+                data = json.loads(body)
+                room = sanitize_code(data.get("room", ""))
+                if re.fullmatch(r"[0-9]{4}", room):
+                    db_clear(room)
+                self._send_json({"ok": True})
+            except Exception as e:
+                self._send_json({"error": str(e)}, 500)
+
+        else:
+            self.send_response(404); self.end_headers()
+
+
+def _start_api_server():
+    """Start the HTTP API on API_PORT in a background daemon thread."""
+    try:
+        server = HTTPServer(("0.0.0.0", API_PORT), _Handler)
+        t = threading.Thread(target=server.serve_forever, daemon=True)
+        t.start()
+        return True
+    except OSError:
+        # Port already in use — already running from a previous Streamlit rerun
+        return False
+
+# Only start once per process
+if "api_server_started" not in st.session_state:
+    _start_api_server()
+    st.session_state["api_server_started"] = True
+
+API_BASE = f"http://localhost:{API_PORT}"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Global CSS + PALETTE
+# ─────────────────────────────────────────────────────────────────────────────
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cairo:wght@400;600;700;900&family=Noto+Naskh+Arabic:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+#MainMenu,header,footer,
+[data-testid="stSidebar"],[data-testid="collapsedControl"],
+[data-testid="stStatusWidget"]{display:none!important;}
+
+.stApp{background:#050505!important;}
+.block-container{padding:0!important;max-width:100%!important;}
+body,html{overflow-x:hidden!important;}
+
+.stButton>button{
+  background:linear-gradient(135deg,#0a0a0a,#111)!important;
+  border:1px solid #222!important;color:#f2ede3!important;
+  border-radius:14px!important;font-weight:700!important;font-size:13px!important;
+  padding:12px 8px!important;width:100%!important;
+  font-family:'Cairo',sans-serif!important;letter-spacing:.04em!important;
+  transition:all .2s cubic-bezier(.4,0,.2,1)!important;
+}
+.stButton>button:hover{
+  background:linear-gradient(135deg,#111,#181818)!important;
+  border-color:#007a3d!important;transform:translateY(-1px)!important;
+  box-shadow:0 4px 20px rgba(0,122,61,.18)!important;
+}
+.stTextInput>div>div>input{
+  background:#080808!important;border:1px solid #222!important;color:#f2ede3!important;
+  border-radius:14px!important;font-size:24px!important;text-align:center!important;
+  letter-spacing:10px!important;font-weight:700!important;
+  font-family:'JetBrains Mono',monospace!important;padding:16px!important;
+}
+.stTextInput>div>div>input:focus{border-color:#007a3d!important;}
+.stSelectbox>div>div{background:#080808!important;border:1px solid #222!important;border-radius:12px!important;color:#f2ede3!important;}
+iframe{display:block!important;}
+div[data-testid="stVerticalBlockBorderWrapper"]{padding:0!important;}
+.pal-divider{height:3px;background:linear-gradient(90deg,#ce1126 0%,#ce1126 33%,#000 33%,#000 66%,#007a3d 66%,#007a3d 100%);border-radius:3px;margin:6px 0;}
+</style>
+""", unsafe_allow_html=True)
+
+PALETTE = """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cairo:wght@400;600;700;900&family=Noto+Naskh+Arabic:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+:root{--bg:#050505;--card:#080808;--b:#1a1a1a;--b2:#252525;
+  --white:#f2ede3;--dim:#222;--green:#007a3d;--gl:#00c65e;
+  --red:#ce1126;--rl:#ff3348;--black:#000;--melon:#fd6b4b;--ml:#ff8a6a;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:transparent;color:var(--white);
+  font-family:'Cairo','Noto Naskh Arabic',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+</style>
+"""
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Session state
+# ─────────────────────────────────────────────────────────────────────────────
 AUDIENCE_LANGS = {
-    "🇸🇦 Arabic":"ar",     "🇬🇧 English":"en",
-    "🇫🇷 French":"fr",     "🇪🇸 Spanish":"es",
-    "🇩🇪 German":"de",     "🇹🇷 Turkish":"tr",
-    "🇮🇹 Italian":"it",    "🇨🇳 Chinese":"zh-CN",
-    "🇷🇺 Russian":"ru",    "🇯🇵 Japanese":"ja",
-    "🇧🇷 Portuguese":"pt", "🇮🇳 Hindi":"hi",
-    "🇰🇷 Korean":"ko",     "🇳🇱 Dutch":"nl",
-    "🇵🇱 Polish":"pl",     "🇸🇪 Swedish":"sv",
-    "🇬🇷 Greek":"el",      "🇹🇭 Thai":"th",
-    "🇻🇳 Vietnamese":"vi", "🇺🇦 Ukrainian":"uk",
+    "🇸🇦 Arabic":"ar","🇬🇧 English":"en","🇫🇷 French":"fr","🇪🇸 Spanish":"es",
+    "🇩🇪 German":"de","🇹🇷 Turkish":"tr","🇮🇹 Italian":"it","🇨🇳 Chinese":"zh-CN",
+    "🇷🇺 Russian":"ru","🇯🇵 Japanese":"ja","🇧🇷 Portuguese":"pt","🇮🇳 Hindi":"hi",
+    "🇰🇷 Korean":"ko","🇳🇱 Dutch":"nl","🇵🇱 Polish":"pl","🇸🇪 Swedish":"sv",
+    "🇬🇷 Greek":"el","🇹🇭 Thai":"th","🇻🇳 Vietnamese":"vi","🇺🇦 Ukrainian":"uk",
     "🇮🇩 Indonesian":"id",
 }
+SPEAKER_LANGS = {
+    "🇬🇧 English":"en","🇸🇦 Arabic":"ar","🇫🇷 French":"fr","🇪🇸 Spanish":"es",
+    "🇩🇪 German":"de","🇹🇷 Turkish":"tr","🇮🇹 Italian":"it","🇨🇳 Chinese":"zh-CN",
+    "🇷🇺 Russian":"ru","🇯🇵 Japanese":"ja","🇧🇷 Portuguese":"pt","🇰🇷 Korean":"ko",
+}
 
-# ── Session state defaults ────────────────────────────────────────────────────
 DEFAULTS = {
-    "page":        "home",
-    "room_code":   None,
-    "last_hash":   None,
-    "card_id":     None,
-    "spk_lang":    "en",
-    "aud_lang":    "ar",
-    "aud_fpx":     28,
-    "join_error":  "",
-    "ui_lang":     "en",
-    "rec_key":     0,          # incremented each time to reset the audio_input widget
+    "page": "home", "room_code": None, "card_id": None,
+    "spk_lang": "en", "aud_lang": "ar", "aud_fpx": 28,
+    "join_error": "", "ui_lang": "en",
 }
 for k, v in DEFAULTS.items():
     if k not in st.session_state:
@@ -712,10 +584,7 @@ def go(page, **kw):
         st.session_state[k] = v
     st.rerun()
 
-# ── UI language toggle ────────────────────────────────────────────────────────
-UI_LANG_OPTIONS = [
-    ("🇬🇧 EN","en"),("🇫🇷 FR","fr"),("🇸🇦 AR","ar"),("🇹🇷 TR","tr"),("🇪🇸 ES","es"),
-]
+UI_LANG_OPTIONS = [("🇬🇧 EN","en"),("🇫🇷 FR","fr"),("🇸🇦 AR","ar"),("🇹🇷 TR","tr"),("🇪🇸 ES","es")]
 
 def render_lang_toggle():
     codes  = [c for _,c in UI_LANG_OPTIONS]
@@ -724,11 +593,10 @@ def render_lang_toggle():
     cur_i  = codes.index(cur) if cur in codes else 0
     nxt_i  = (cur_i + 1) % len(codes)
     st.markdown("""<div style='height:6px'></div>""", unsafe_allow_html=True)
-    col_l, col_btn, col_r = st.columns([3,2,3])
+    _, col_btn, _ = st.columns([3,2,3])
     with col_btn:
         if st.button(f"{labels[cur_i]}  →  {labels[nxt_i]}", key="lang_toggle", use_container_width=True):
-            st.session_state.ui_lang = codes[nxt_i]
-            st.rerun()
+            st.session_state.ui_lang = codes[nxt_i]; st.rerun()
     st.markdown("""<div class='pal-divider'></div>""", unsafe_allow_html=True)
 
 
@@ -736,7 +604,6 @@ def render_lang_toggle():
 # HOME
 # ══════════════════════════════════════════════════════════════════════════════
 if st.session_state.page == "home":
-
     render_lang_toggle()
     rtl = is_rtl_ui()
     ui_dir   = "rtl" if rtl else "ltr"
@@ -744,47 +611,27 @@ if st.session_state.page == "home":
 
     st.components.v1.html(PALETTE + f"""
 <style>
-body{{
-  display:flex;flex-direction:column;align-items:center;
-  padding:16px 16px 12px;text-align:{ui_align};background:transparent;
-  direction:{ui_dir};
-}}
-.kufic{{
-  font-family:{("'Noto Naskh Arabic','Cairo'" if rtl else "'Bebas Neue'")};
+body{{display:flex;flex-direction:column;align-items:center;
+  padding:16px 16px 12px;text-align:{ui_align};background:transparent;direction:{ui_dir};}}
+.kufic{{font-family:{("'Noto Naskh Arabic','Cairo'" if rtl else "'Bebas Neue'")};
   font-size:clamp({("44px,11vw,80px" if rtl else "60px,15vw,108px")});
-  line-height:.85;letter-spacing:{(".02em" if rtl else ".03em")};
-  font-weight:{("900" if rtl else "normal")};
-}}
-.live-word{{
-  background:linear-gradient(135deg,#ff3348 0%,#fd6b4b 45%,#fff 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}}
-.tr-word{{
-  background:linear-gradient(135deg,#fd6b4b 0%,#ff8a6a 55%,#fff 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}}
+  line-height:.85;letter-spacing:.03em;font-weight:{("900" if rtl else "normal")};}}
+.live-word{{background:linear-gradient(135deg,#ff3348 0%,#fd6b4b 45%,#fff 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}}
+.tr-word{{background:linear-gradient(135deg,#fd6b4b 0%,#ff8a6a 55%,#fff 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}}
 .sub{{font-size:11px;color:#666;letter-spacing:.14em;text-transform:uppercase;
   margin-top:12px;font-family:{("'Noto Naskh Arabic','Cairo'" if rtl else "'JetBrains Mono',monospace")};}}
-.pal-bar{{
-  display:flex;width:86%;max-width:310px;height:4px;border-radius:4px;
-  overflow:hidden;margin:14px auto 0;
-}}
-.pb-r{{flex:1;background:#fd6b4b;}}
-.pb-m{{flex:1;background:#ff8a6a;}}
-.pb-d{{flex:1;background:#e85530;}}
-.pb-w{{flex:1;background:#ce1126;}}
-@keyframes pulse{{0%,100%{{box-shadow:0 0 0 0 rgba(253,107,75,0)}}50%{{box-shadow:0 0 20px 5px rgba(253,107,75,.14)}}}}
-.pal-bar{{animation:pulse 3.5s infinite;}}
+.pal-bar{{display:flex;width:86%;max-width:310px;height:4px;border-radius:4px;overflow:hidden;margin:14px auto 0;}}
+.pb-r{{flex:1;background:#fd6b4b;}}.pb-m{{flex:1;background:#ff8a6a;}}
+.pb-d{{flex:1;background:#e85530;}}.pb-w{{flex:1;background:#ce1126;}}
 </style>
 <div class="kufic">
   <span class="live-word">{esc(T("hero_line1"))}</span><br>
   <span class="tr-word">{esc(T("hero_line2"))}</span>
 </div>
 <div class="sub">{esc(T("app_sub"))} 🇵🇸</div>
-<div class="pal-bar">
-  <div class="pb-r"></div><div class="pb-m"></div>
-  <div class="pb-d"></div><div class="pb-w"></div>
-</div>
+<div class="pal-bar"><div class="pb-r"></div><div class="pb-m"></div><div class="pb-d"></div><div class="pb-w"></div></div>
 """, height=220)
 
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
@@ -796,38 +643,28 @@ body{{
         if st.button(T("audience_btn"), key="btn_aud", use_container_width=True):
             go("audience_join")
 
-    st.markdown(f"""
-<div style='text-align:center;font-size:9px;color:#1c1c1c;
+    st.markdown(f"""<div style='text-align:center;font-size:9px;color:#1c1c1c;
   letter-spacing:.07em;padding:10px 0 4px;font-family:monospace;'>
-  {esc(T("footer"))} 🇵🇸
-</div>""", unsafe_allow_html=True)
+  {esc(T("footer"))} 🇵🇸</div>""", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SPEAKER SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "speaker_setup":
-
     if not st.session_state.room_code:
-        code = gen_code()
-        room_create(code)
+        code = gen_code(); room_create(code)
         st.session_state.room_code = code
-
     code = st.session_state.room_code
-    rtl  = is_rtl_ui()
-    ui_dir = "rtl" if rtl else "ltr"
+    rtl  = is_rtl_ui(); ui_dir = "rtl" if rtl else "ltr"
 
     st.components.v1.html(PALETTE + f"""
 <style>
 body{{padding:16px 16px 6px;background:transparent;direction:{ui_dir};}}
-.title{{
-  font-family:'Bebas Neue',sans-serif;font-size:clamp(44px,10vw,78px);
-  line-height:.85;letter-spacing:.03em;
+.title{{font-family:'Bebas Neue',sans-serif;font-size:clamp(44px,10vw,78px);line-height:.85;letter-spacing:.03em;
   background:linear-gradient(140deg,#f2ede3 30%,#fd6b4b 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}}
-.sub{{font-size:10px;color:#3a3a3a;letter-spacing:.12em;text-transform:uppercase;
-  margin-top:7px;font-family:'Cairo',sans-serif;}}
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}}
+.sub{{font-size:10px;color:#3a3a3a;letter-spacing:.12em;text-transform:uppercase;margin-top:7px;font-family:'Cairo',sans-serif;}}
 </style>
 <div class="title">{esc(T("your_room"))}</div>
 <div class="sub">{esc(T("share_code"))}</div>
@@ -835,33 +672,20 @@ body{{padding:16px 16px 6px;background:transparent;direction:{ui_dir};}}
 
     st.components.v1.html(PALETTE + f"""
 <style>
-body{{
-  display:flex;flex-direction:column;align-items:center;
-  padding:6px 16px 10px;text-align:center;background:transparent;
-}}
-.lbl{{font-size:10px;color:#333;letter-spacing:.18em;text-transform:uppercase;
-  font-family:'JetBrains Mono',monospace;margin-bottom:10px;}}
-.outer{{
-  padding:2px;border-radius:24px;
-  background:linear-gradient(135deg,#ce1126,#000 40%,#007a3d);
-}}
+body{{display:flex;flex-direction:column;align-items:center;padding:6px 16px 10px;text-align:center;background:transparent;}}
+.lbl{{font-size:10px;color:#333;letter-spacing:.18em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:10px;}}
+.outer{{padding:2px;border-radius:24px;background:linear-gradient(135deg,#ce1126,#000 40%,#007a3d);}}
 .box{{background:#060606;border-radius:22px;padding:22px 40px 16px;}}
-.code{{
-  font-family:'Bebas Neue',sans-serif;
-  font-size:clamp(88px,24vw,136px);
-  letter-spacing:18px;line-height:1;
+.code{{font-family:'Bebas Neue',sans-serif;font-size:clamp(88px,24vw,136px);letter-spacing:18px;line-height:1;
   background:linear-gradient(135deg,#ff3348,#ff8a6a,#fff);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}}
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}}
 .hint{{font-size:11px;color:#2a2a2a;margin-top:7px;font-family:'JetBrains Mono',monospace;}}
 </style>
 <div class="lbl">{esc(T("room_code_lbl"))}</div>
-<div class="outer">
-  <div class="box">
-    <div class="code">{esc(code)}</div>
-    <div class="hint">{esc(T("code_hint"))}</div>
-  </div>
-</div>
+<div class="outer"><div class="box">
+  <div class="code">{esc(code)}</div>
+  <div class="hint">{esc(T("code_hint"))}</div>
+</div></div>
 """, height=212)
 
     st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
@@ -872,9 +696,7 @@ body{{
     with c2:
         if st.button(T("new_code"), key="spk_newcode", use_container_width=True):
             c = gen_code(); room_create(c)
-            st.session_state.room_code = c
-            st.rerun()
-
+            st.session_state.room_code = c; st.rerun()
     st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
     if st.button(T("back_home"), key="spk_setup_back", use_container_width=True):
         go("home", room_code=None)
@@ -884,21 +706,15 @@ body{{
 # AUDIENCE JOIN
 # ══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "audience_join":
-
-    rtl    = is_rtl_ui()
-    ui_dir = "rtl" if rtl else "ltr"
+    rtl = is_rtl_ui(); ui_dir = "rtl" if rtl else "ltr"
 
     st.components.v1.html(PALETTE + f"""
 <style>
 body{{padding:16px 16px 6px;background:transparent;direction:{ui_dir};}}
-.title{{
-  font-family:'Bebas Neue',sans-serif;font-size:clamp(44px,10vw,78px);
-  line-height:.85;letter-spacing:.03em;
+.title{{font-family:'Bebas Neue',sans-serif;font-size:clamp(44px,10vw,78px);line-height:.85;letter-spacing:.03em;
   background:linear-gradient(140deg,#f2ede3 30%,#00c65e 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}}
-.sub{{font-size:10px;color:#3a3a3a;letter-spacing:.12em;text-transform:uppercase;
-  margin-top:7px;font-family:'Cairo',sans-serif;}}
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}}
+.sub{{font-size:10px;color:#3a3a3a;letter-spacing:.12em;text-transform:uppercase;margin-top:7px;font-family:'Cairo',sans-serif;}}
 </style>
 <div class="title">{esc(T("join_room"))}</div>
 <div class="sub">{esc(T("enter_code"))}</div>
@@ -908,12 +724,10 @@ body{{padding:16px 16px 6px;background:transparent;direction:{ui_dir};}}
     code_input = st.text_input("ROOM CODE", max_chars=4, placeholder="1234", key="aud_code_field")
 
     if st.session_state.join_error:
-        st.markdown(f"""
-<div style='background:rgba(206,17,38,.1);border:1px solid rgba(255,51,72,.28);
+        st.markdown(f"""<div style='background:rgba(206,17,38,.1);border:1px solid rgba(255,51,72,.28);
   border-radius:12px;padding:12px 14px;font-size:13px;color:#ff3348;
-  text-align:center;margin:6px 0;font-family:"Cairo",sans-serif;'>
-  ❌ {esc(st.session_state.join_error)}
-</div>""", unsafe_allow_html=True)
+  text-align:center;margin:6px 0;font-family:"Cairo",sans-serif;'>❌ {esc(st.session_state.join_error)}</div>""",
+                    unsafe_allow_html=True)
 
     st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
     j1, j2 = st.columns(2, gap="small")
@@ -921,73 +735,42 @@ body{{padding:16px 16px 6px;background:transparent;direction:{ui_dir};}}
         if st.button(T("join_btn"), key="aud_join_btn", use_container_width=True):
             code = sanitize_code(code_input)
             if len(code) != 4:
-                st.session_state.join_error = "Please enter a valid 4-digit code"
-                st.rerun()
+                st.session_state.join_error = "Please enter a valid 4-digit code"; st.rerun()
             elif not room_exists(code):
-                st.session_state.join_error = f"Room {code} not found — check the code"
-                st.rerun()
+                st.session_state.join_error = f"Room {code} not found — check the code"; st.rerun()
             else:
                 st.session_state.join_error = ""
                 go("audience", room_code=code)
     with j2:
         if st.button(T("back"), key="aud_join_back", use_container_width=True):
-            st.session_state.join_error = ""
-            go("home")
-
-    ask_dir = "rtl" if rtl else "ltr"
-    st.components.v1.html(PALETTE + f"""
-<style>
-body{{padding:12px 0;background:transparent;direction:{ask_dir};}}
-.tip{{
-  background:#060606;border-radius:16px;padding:18px 16px;text-align:center;
-  position:relative;overflow:hidden;
-}}
-.tip::after{{
-  content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,#ce1126 0%,#ce1126 33%,#000 33%,#000 66%,#007a3d 66%);
-}}
-.icon{{font-size:28px;margin-bottom:8px;}}
-.t{{font-size:12px;color:#2e2e2e;line-height:1.7;font-family:'Cairo',sans-serif;}}
-.t b{{color:#3a3a3a;}}
-</style>
-<div class="tip">
-  <div class="icon">💡</div>
-  <div class="t">{T("ask_speaker")}</div>
-</div>
-""", height=128)
+            st.session_state.join_error = ""; go("home")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SPEAKER  — tap mic to start, tap again to stop
+# SPEAKER  — Web Speech API mic, real-time word-by-word
 # ══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "speaker":
-
     if not st.session_state.room_code:
         go("speaker_setup")
 
-    room   = st.session_state.room_code
-    rtl    = is_rtl_ui()
-    ui_dir = "rtl" if rtl else "ltr"
+    room     = st.session_state.room_code
+    rtl      = is_rtl_ui()
+    ui_dir   = "rtl" if rtl else "ltr"
+    spk_lang = st.session_state.get("spk_lang", "en")
 
-    nl, nr = st.columns([3,1], gap="small")
+    # ── Header row ────────────────────────────────────────────────────────────
+    nl, nr = st.columns([3, 1], gap="small")
     with nl:
         st.components.v1.html(PALETTE + f"""
 <style>
 body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
-.title{{
-  font-family:'Bebas Neue',sans-serif;font-size:clamp(44px,10vw,78px);
-  line-height:.85;letter-spacing:.03em;
+.title{{font-family:'Bebas Neue',sans-serif;font-size:clamp(44px,10vw,78px);line-height:.85;
   background:linear-gradient(140deg,#f2ede3 30%,#fd6b4b 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}}
-.sub{{font-size:10px;color:#3a3a3a;letter-spacing:.12em;text-transform:uppercase;
-  margin-top:6px;font-family:'Cairo',sans-serif;}}
-.badge{{
-  display:inline-flex;align-items:center;gap:5px;
-  background:rgba(253,107,75,.1);border:1px solid rgba(253,107,75,.25);
-  border-radius:8px;padding:4px 10px;margin-top:7px;
-  font-size:11px;color:#ff8a6a;font-family:'JetBrains Mono',monospace;font-weight:700;
-}}
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}}
+.sub{{font-size:10px;color:#3a3a3a;letter-spacing:.12em;text-transform:uppercase;margin-top:6px;font-family:'Cairo',sans-serif;}}
+.badge{{display:inline-flex;align-items:center;gap:5px;background:rgba(253,107,75,.1);
+  border:1px solid rgba(253,107,75,.25);border-radius:8px;padding:4px 10px;margin-top:7px;
+  font-size:11px;color:#ff8a6a;font-family:'JetBrains Mono',monospace;font-weight:700;}}
 </style>
 <div class="title">{esc(T("speak_now"))}</div>
 <div class="sub">{esc(T("tap_mic"))}</div>
@@ -998,91 +781,211 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
         if st.button(T("home_btn"), key="spk_home", use_container_width=True):
             go("home", room_code=None)
 
+    # ── Language selector ──────────────────────────────────────────────────────
     spk_label = st.selectbox(
         T("speaking_lang"),
         list(SPEAKER_LANGS.keys()),
-        index=list(SPEAKER_LANGS.values()).index(st.session_state.spk_lang),
+        index=list(SPEAKER_LANGS.values()).index(spk_lang),
         key="spk_lang_sel",
     )
     st.session_state.spk_lang = SPEAKER_LANGS[spk_label]
-    lang_code = st.session_state.spk_lang
+    spk_lang = st.session_state.spk_lang
 
-    # ── Hint banner ───────────────────────────────────────────────────────────
-    st.markdown(f"""
-<div style='background:rgba(0,122,61,.07);border:1px solid rgba(0,198,94,.15);
-  border-radius:12px;padding:10px 14px;font-size:12px;color:#2a7a4a;
-  text-align:center;font-family:monospace;letter-spacing:.04em;margin:4px 0 2px;'>
-  {esc(T("tap_hint"))}
-</div>""", unsafe_allow_html=True)
-
-    # ── The working mic recorder ──────────────────────────────────────────────
-    # st.audio_input: tap once → starts recording (button turns red / pulsing)
-    #                 tap again → stops, returns audio bytes, triggers rerun
-    # We reset the widget after each recording by incrementing rec_key.
-
-    # Centre the widget
-    _, mic_col, _ = st.columns([1, 2, 1])
-    with mic_col:
-        audio_data = st.audio_input(
-            label="",
-            key=f"mic_{st.session_state.rec_key}",
-            label_visibility="collapsed",
-        )
-
-    # ── Process the recording ─────────────────────────────────────────────────
-    if audio_data is not None:
-        audio_bytes = audio_data.read()
-
-        if len(audio_bytes) > 500:  # ignore empty/near-empty recordings
-            # Ensure we have an active card
-            if not st.session_state.card_id:
-                st.session_state.card_id = datetime.now().strftime("%Y%m%d%H%M%S%f")
-            card_id = st.session_state.card_id
-
-            with st.spinner(T("transcribing")):
-                transcribe(audio_bytes, lang_code, room=room, card_id=card_id)
-
-        # Increment rec_key → resets st.audio_input so speaker can record again immediately
-        st.session_state.rec_key += 1
-        st.rerun()
-
-    # ── Controls row ──────────────────────────────────────────────────────────
-    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
-    s1, s2, s3 = st.columns([3, 2, 2], gap="small")
-    with s1:
-        cards_data = cards_get(room, 1)
-        active_card = cards_data[0] if cards_data else None
-        chunk_count = len(active_card[1]) if active_card and not active_card[2] else 0
-        status_txt = T("streaming") if (active_card and not active_card[2]) else T("sealed")
-        status_col = "#00c65e" if (active_card and not active_card[2]) else "#555"
-        st.components.v1.html(f"""
-<style>
-@keyframes dp{{0%,100%{{opacity:1}}50%{{opacity:.25}}}}
-body{{margin:0;padding:3px 0;background:transparent;}}
-</style>
-<div style='display:flex;align-items:center;gap:8px;padding:10px 14px;
-  background:#060606;border:1px solid #161616;border-radius:10px;
-  font-size:11px;font-family:monospace;'>
-  <span style='width:7px;height:7px;border-radius:50%;background:{status_col};
-    box-shadow:0 0 0 3px rgba(0,198,94,.18);
-    animation:dp 1.4s infinite;flex-shrink:0;display:inline-block;'></span>
-  <span style='color:#f2ede3;'>
-    <b>{chunk_count}</b> {esc(T("chunks"))} · {esc(status_txt)} · {esc(T("room"))} <b>{esc(room)}</b>
-  </span>
-</div>""", height=44)
-    with s2:
+    # ── Controls ──────────────────────────────────────────────────────────────
+    sc1, sc2, sc3 = st.columns([2, 2, 2], gap="small")
+    with sc2:
         if st.button(T("new_card"), key="new_card_btn", use_container_width=True):
             if st.session_state.card_id:
                 card_seal(room, st.session_state.card_id)
-            st.session_state.card_id = None
-            st.rerun()
-    with s3:
+            st.session_state.card_id = None; st.rerun()
+    with sc3:
         if st.button(T("clear_btn"), key="clr_btn", use_container_width=True):
-            db_clear(room)
-            st.session_state.card_id = None
-            st.rerun()
+            db_clear(room); st.session_state.card_id = None; st.rerun()
 
-    # ── Transcript cards ──────────────────────────────────────────────────────
+    # Ensure there's an active card_id the JS can reference
+    if not st.session_state.card_id:
+        st.session_state.card_id = datetime.now().strftime("%Y%m%d%H%M%S%f")
+    card_id = st.session_state.card_id
+
+    # ── Web Speech API microphone widget ──────────────────────────────────────
+    #
+    # This iframe runs entirely in the browser.  It sends interim results
+    # word-by-word to our embedded API server at API_PORT.
+    #
+    spk_lang_bcp47 = {
+        "en": "en-US", "ar": "ar-SA", "fr": "fr-FR", "es": "es-ES",
+        "de": "de-DE", "tr": "tr-TR", "it": "it-IT", "zh-CN": "zh-CN",
+        "ru": "ru-RU", "ja": "ja-JP", "pt": "pt-BR", "ko": "ko-KR",
+    }.get(spk_lang, spk_lang)
+
+    unsupported_msg = esc(T("mic_unsupported"))
+    denied_msg      = esc(T("mic_denied"))
+    start_lbl       = esc(T("mic_start"))
+    stop_lbl        = esc(T("mic_stop"))
+    recording_lbl   = esc(T("recording"))
+
+    # We put the API base URL in the JS so the iframe can POST to it
+    st.components.v1.html(PALETTE + f"""
+<style>
+body{{
+  margin:0;padding:12px 0;background:transparent;
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+}}
+#mic-btn{{
+  width:140px;height:140px;border-radius:50%;
+  background:#0a0a0a;border:2px solid #1e1e1e;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:48px;transition:all .25s;
+  -webkit-tap-highlight-color:transparent;user-select:none;
+}}
+#mic-btn:hover{{border-color:#fd6b4b;box-shadow:0 0 28px rgba(253,107,75,.22);transform:scale(1.04);}}
+#mic-btn.recording{{
+  border-color:#ce1126;
+  box-shadow:0 0 0 8px rgba(206,17,38,.12),0 0 40px rgba(206,17,38,.18);
+  animation:pulse-ring 1.4s ease infinite;
+}}
+@keyframes pulse-ring{{
+  0%{{box-shadow:0 0 0 4px rgba(206,17,38,.2),0 0 40px rgba(206,17,38,.1);}}
+  50%{{box-shadow:0 0 0 14px rgba(206,17,38,.05),0 0 60px rgba(206,17,38,.22);}}
+  100%{{box-shadow:0 0 0 4px rgba(206,17,38,.2),0 0 40px rgba(206,17,38,.1);}}
+}}
+#status{{
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:#555;
+  letter-spacing:.08em;text-align:center;min-height:18px;
+}}
+#status.live{{color:#fd6b4b;}}
+#interim{{
+  font-family:'Cairo',sans-serif;font-size:15px;font-weight:600;
+  color:#888;text-align:center;padding:0 16px;min-height:24px;word-break:break-word;
+  max-width:90vw;
+}}
+</style>
+
+<div id="mic-btn" onclick="toggleMic()">🎤</div>
+<div id="status">{start_lbl}</div>
+<div id="interim"></div>
+
+<script>
+(function(){{
+  const API   = 'http://localhost:{API_PORT}';
+  const ROOM  = '{esc(room)}';
+  const CARD  = '{esc(card_id)}';
+  const LANG  = '{esc(spk_lang_bcp47)}';
+
+  const btn     = document.getElementById('mic-btn');
+  const status  = document.getElementById('status');
+  const interim = document.getElementById('interim');
+
+  let recog = null;
+  let running = false;
+  let seq = 0;               // monotonically increasing chunk sequence
+  let restartTimer = null;
+
+  // Check support
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {{
+    status.textContent = '{unsupported_msg}';
+    btn.style.opacity = '.4';
+    btn.onclick = null;
+    return;
+  }}
+
+  function buildRecognizer() {{
+    const r = new SpeechRecognition();
+    r.lang = LANG;
+    r.continuous = true;
+    r.interimResults = true;
+    r.maxAlternatives = 1;
+
+    r.onstart = () => {{
+      running = true;
+      btn.classList.add('recording');
+      btn.textContent = '⏹';
+      status.textContent = '{recording_lbl}';
+      status.classList.add('live');
+    }};
+
+    r.onend = () => {{
+      if (running) {{
+        // auto-restart (browser stops after ~60 s of silence on mobile)
+        restartTimer = setTimeout(() => {{ if (running) r.start(); }}, 300);
+      }} else {{
+        btn.classList.remove('recording');
+        btn.textContent = '🎤';
+        status.textContent = '{start_lbl}';
+        status.classList.remove('live');
+        interim.textContent = '';
+      }}
+    }};
+
+    r.onerror = (e) => {{
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {{
+        running = false;
+        status.textContent = '{denied_msg}';
+        btn.style.opacity = '.5';
+      }} else if (e.error === 'network') {{
+        // retry silently
+        if (running) restartTimer = setTimeout(() => r.start(), 1000);
+      }}
+      // other errors (aborted, no-speech) — just let onend handle restart
+    }};
+
+    r.onresult = (event) => {{
+      let interimTxt = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {{
+        const res = event.results[i];
+        const txt = res[0].transcript.trim();
+        if (!txt) continue;
+        if (res.isFinal) {{
+          seq++;
+          sendChunk(txt, false, 'f' + seq);
+          interimTxt = '';
+        }} else {{
+          interimTxt = txt;
+          sendChunk(txt, true, 'i' + seq);
+        }}
+      }}
+      interim.textContent = interimTxt;
+    }};
+
+    return r;
+  }}
+
+  function sendChunk(txt, isInterim, chunkKey) {{
+    fetch(API + '/api/chunk', {{
+      method: 'POST',
+      headers: {{'Content-Type': 'application/json'}},
+      body: JSON.stringify({{
+        room: ROOM, card_id: CARD,
+        chunk_id: CARD + ':' + chunkKey,
+        txt: txt, lang: LANG.split('-')[0],
+        interim: isInterim
+      }})
+    }}).catch(() => {{}});  // fire and forget — UDP-style
+  }}
+
+  window.toggleMic = function() {{
+    if (!running) {{
+      recog = buildRecognizer();
+      running = true;
+      try {{ recog.start(); }} catch(e) {{}}
+    }} else {{
+      running = false;
+      if (restartTimer) clearTimeout(restartTimer);
+      try {{ recog.stop(); }} catch(e) {{}}
+      // seal the card
+      fetch(API + '/api/seal', {{
+        method: 'POST',
+        headers: {{'Content-Type': 'application/json'}},
+        body: JSON.stringify({{room: ROOM, card_id: CARD}})
+      }}).catch(() => {{}});
+    }}
+  }};
+}})();
+</script>
+""", height=230)
+
+    # ── Live transcript preview (polling SQLite directly — speaker side) ───────
     all_cards = cards_get(room, 6)
     if not all_cards:
         st.components.v1.html(PALETTE + f"""
@@ -1094,27 +997,27 @@ body{{margin:0;padding:3px 0;background:transparent;}}
     else:
         cards_html = ""
         for i, (cid, chunk_rows, sealed) in enumerate(all_cards):
-            full_txt = " ".join(r[0] for r in chunk_rows if r[0].strip())
-            lang     = chunk_rows[0][1] if chunk_rows else ""
-            ts       = chunk_rows[-1][2] if chunk_rows else ""
-            d        = dir_attr(lang)
-            rs       = rtl_style(lang)
-            tf       = ("'Noto Naskh Arabic','Cairo',sans-serif"
-                        if dir_attr(lang) == "rtl" else "'Cairo',sans-serif")
-            is_live  = (i == 0 and not sealed)
-            border   = "border-left:3px solid #fd6b4b;" if is_live and d == "ltr" else \
-                       ("border-right:3px solid #fd6b4b;" if is_live else "")
-            bg       = "background:linear-gradient(135deg,rgba(253,107,75,.06),#080808 55%);" if is_live else ""
-            badge    = f'<span class="ltag live">● LIVE</span>' if is_live else \
-                       f'<span class="ltag done">✓</span>'
-            n_chunks = len(chunk_rows)
+            # skip pure-interim rows for the speaker preview
+            final_rows = [r for r in chunk_rows if not r[3]]  # r[3] = interim flag
+            if not final_rows: continue
+            full_txt = " ".join(r[0] for r in final_rows if r[0].strip())
+            lang  = chunk_rows[0][1] if chunk_rows else ""
+            ts    = chunk_rows[-1][2] if chunk_rows else ""
+            d     = dir_attr(lang)
+            rs    = rtl_style(lang)
+            tf    = ("'Noto Naskh Arabic','Cairo',sans-serif" if d == "rtl" else "'Cairo',sans-serif")
+            is_live = (i == 0 and not sealed)
+            border = "border-left:3px solid #fd6b4b;" if is_live and d == "ltr" else \
+                     ("border-right:3px solid #fd6b4b;" if is_live else "")
+            bg     = "background:linear-gradient(135deg,rgba(253,107,75,.06),#080808 55%);" if is_live else ""
+            badge  = '<span class="ltag live">● LIVE</span>' if is_live else '<span class="ltag done">✓</span>'
             cards_html += f"""
 <div class="hc" style="{border}{bg}">
   <div class="meta">
     <span class="ts">🕐 {esc(ts)}</span>
     <span class="ltag lang">{esc((lang or "??").upper())}</span>
     {badge}
-    <span class="ts">{n_chunks} {esc(T("chunks"))}</span>
+    <span class="ts">{len(final_rows)} {esc(T("chunks"))}</span>
   </div>
   <div class="htxt" dir="{d}" style="{rs}font-family:{tf};">{esc(full_txt)}</div>
 </div>"""
@@ -1122,13 +1025,11 @@ body{{margin:0;padding:3px 0;background:transparent;}}
         st.components.v1.html(PALETTE + f"""
 <style>
 body{{background:transparent;padding:4px 0 24px;}}
-.hc{{background:#070707;border:1px solid #161616;border-radius:14px;
-  padding:14px 16px;margin:5px 0;transition:border-color .2s;}}
+.hc{{background:#070707;border:1px solid #161616;border-radius:14px;padding:14px 16px;margin:5px 0;transition:border-color .2s;}}
 .hc:hover{{border-color:#252525;}}
 .meta{{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:7px;}}
 .ts{{font-family:'JetBrains Mono',monospace;font-size:10px;color:#2a2a2a;}}
-.ltag{{border-radius:5px;padding:1px 8px;font-size:9px;font-weight:700;
-  letter-spacing:.1em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;}}
+.ltag{{border-radius:5px;padding:1px 8px;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;}}
 .ltag.lang{{background:rgba(0,198,94,.08);color:#00c65e;border:1px solid rgba(0,198,94,.2);}}
 .ltag.live{{background:rgba(253,107,75,.1);color:#ff8a6a;border:1px solid rgba(253,107,75,.25);}}
 .ltag.done{{background:rgba(85,85,85,.1);color:#555;border:1px solid rgba(85,85,85,.2);}}
@@ -1139,10 +1040,9 @@ body{{background:transparent;padding:4px 0 24px;}}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# AUDIENCE
+# AUDIENCE  — polls /api/poll every second, renders word-by-word in JS
 # ══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "audience":
-
     if not st.session_state.room_code:
         go("audience_join")
 
@@ -1150,25 +1050,18 @@ elif st.session_state.page == "audience":
     rtl    = is_rtl_ui()
     ui_dir = "rtl" if rtl else "ltr"
 
-    al, ar_ = st.columns([3,1], gap="small")
+    al, ar_ = st.columns([3, 1], gap="small")
     with al:
         st.components.v1.html(PALETTE + f"""
 <style>
 body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
-.title{{
-  font-family:'Bebas Neue',sans-serif;font-size:clamp(44px,10vw,78px);
-  line-height:.85;letter-spacing:.03em;
+.title{{font-family:'Bebas Neue',sans-serif;font-size:clamp(44px,10vw,78px);line-height:.85;
   background:linear-gradient(140deg,#f2ede3 30%,#00c65e 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}}
-.sub{{font-size:10px;color:#3a3a3a;letter-spacing:.12em;text-transform:uppercase;
-  margin-top:6px;font-family:'Cairo',sans-serif;}}
-.badge{{
-  display:inline-flex;align-items:center;gap:5px;
-  background:rgba(0,122,61,.1);border:1px solid rgba(0,198,94,.25);
-  border-radius:8px;padding:4px 10px;margin-top:7px;
-  font-size:11px;color:#00c65e;font-family:'JetBrains Mono',monospace;font-weight:700;
-}}
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}}
+.sub{{font-size:10px;color:#3a3a3a;letter-spacing:.12em;text-transform:uppercase;margin-top:6px;font-family:'Cairo',sans-serif;}}
+.badge{{display:inline-flex;align-items:center;gap:5px;background:rgba(0,122,61,.1);
+  border:1px solid rgba(0,198,94,.25);border-radius:8px;padding:4px 10px;margin-top:7px;
+  font-size:11px;color:#00c65e;font-family:'JetBrains Mono',monospace;font-weight:700;}}
 </style>
 <div class="title">{esc(T("live_subs"))}</div>
 <div class="sub">{esc(T("realtime_subs"))}</div>
@@ -1179,14 +1072,14 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
         if st.button(T("home_btn"), key="aud_home", use_container_width=True):
             go("home", room_code=None)
 
-    c1, c2 = st.columns([3,1], gap="small")
+    # Language + font size
+    c1, c2 = st.columns([3, 1], gap="small")
     with c1:
         lc_sel = st.selectbox(
             T("language"),
             list(AUDIENCE_LANGS.keys()),
             index=list(AUDIENCE_LANGS.values()).index(st.session_state.aud_lang),
-            label_visibility="collapsed",
-            key="aud_lang_sel",
+            label_visibility="collapsed", key="aud_lang_sel",
         )
         st.session_state.aud_lang = AUDIENCE_LANGS[lc_sel]
     with c2:
@@ -1195,224 +1088,310 @@ body{{padding:16px 16px 4px;background:transparent;direction:{ui_dir};}}
         if st.button("A+", key="fup", use_container_width=True):
             st.session_state.aud_fpx = min(64, st.session_state.aud_fpx + 4)
 
-    # Wake lock
+    tgt     = st.session_state.aud_lang
+    fpx     = st.session_state.aud_fpx
+    tgt_dir = dir_attr(tgt)
+    tgt_sty = rtl_style(tgt)
+    tgt_font = ("'Noto Naskh Arabic','Cairo',sans-serif" if tgt_dir == "rtl" else "'Cairo',sans-serif")
+    fs_align = "right" if tgt_dir == "rtl" else "left"
+
+    waiting_msg    = esc(T("waiting"))
+    will_bcast_msg = esc(T("will_broadcast"))
+    live_dot_msg   = esc(T("live_dot"))
+    streaming_msg  = esc(T("streaming"))
+    waiting_lbl    = esc(T("waiting"))
+    previous_lbl   = esc(T("previous"))
+    speak_aloud_lbl= esc(T("speak_aloud"))
+    copy_lbl       = esc(T("copy_btn"))
+    full_lbl        = esc(T("full_btn"))
+    tap_close_lbl  = esc(T("tap_close"))
+    chunks_lbl     = esc(T("chunks"))
+
+    # Screen-wake lock
     st.components.v1.html("""<script>
-(async()=>{
-  if('wakeLock' in navigator){
-    try{await navigator.wakeLock.request('screen');}catch(e){}
-    document.addEventListener('visibilitychange',async()=>{
-      if(document.visibilityState==='visible')
-        try{await navigator.wakeLock.request('screen');}catch(e){}
-    });
-  }
-})();
+(async()=>{if('wakeLock' in navigator){
+  try{await navigator.wakeLock.request('screen');}catch(e){}
+  document.addEventListener('visibilitychange',async()=>{
+    if(document.visibilityState==='visible')
+      try{await navigator.wakeLock.request('screen');}catch(e){}
+  });
+}})();
 </script>""", height=1)
 
-    @st.fragment(run_every=2)
-    def live_display():
-        tgt      = st.session_state.aud_lang
-        fpx      = st.session_state.aud_fpx
-        tgt_dir  = dir_attr(tgt)
-        tgt_sty  = rtl_style(tgt)
-        tgt_font = ("'Noto Naskh Arabic','Cairo',sans-serif"
-                    if tgt_dir == "rtl" else "'Cairo',sans-serif")
-        fs_align = "right" if tgt_dir == "rtl" else "left"
-
-        all_cards = cards_get(room, 6)
-
-        live_card = next((c for c in all_cards if not c[2]), None)
-        is_live   = live_card is not None
-        dot_col   = "#00c65e" if is_live else "#333"
-        dot_anim  = "dp 1.2s infinite" if is_live else "none"
-        status_lbl = T("streaming") if is_live else T("waiting")
-        st.components.v1.html(f"""
+    # ── The real-time audience display — pure JS polling ─────────────────────
+    st.components.v1.html(PALETTE + f"""
 <style>
-@keyframes dp{{0%,100%{{opacity:1}}50%{{opacity:.15}}}}
-body{{margin:0;padding:2px 0;background:transparent;}}
-</style>
-<div style='display:flex;align-items:center;gap:7px;padding:8px 13px;
+body{{margin:0;padding:8px 4px 24px;background:transparent;}}
+
+/* ── status bar ── */
+#statusbar{{
+  display:flex;align-items:center;gap:7px;padding:8px 13px;
   background:#060606;border:1px solid #161616;border-radius:10px;
-  font-size:11px;font-family:monospace;'>
-  <span style='width:7px;height:7px;border-radius:50%;background:{dot_col};
-    box-shadow:0 0 0 3px rgba(0,198,94,.15);
-    animation:{dot_anim};flex-shrink:0;display:inline-block;'></span>
-  <span style='color:#f2ede3;'>
-    {esc(T("live_dot"))} · {esc(status_lbl)} · {esc(T("room"))} <b>{esc(room)}</b> · <b>{esc(tgt.upper())}</b>
-  </span>
-</div>""", height=38)
-
-        if not all_cards:
-            st.components.v1.html(PALETTE + f"""
-<style>body{{padding:30px 0;text-align:center;background:transparent;}}</style>
-<div style='font-size:42px;margin-bottom:9px'>⏳</div>
-<div style='font-size:14px;color:#888;font-family:"Cairo","Noto Naskh Arabic",sans-serif;'>
-  {esc(T("waiting"))}</div>
-<div style='font-size:11px;color:#555;margin-top:5px;font-family:"Cairo","Noto Naskh Arabic",sans-serif;'>
-  {esc(T("will_broadcast"))}</div>
-""", height=150)
-            return
-
-        if live_card:
-            cid, chunk_rows, _ = live_card
-            src_lang = chunk_rows[0][1] if chunk_rows else ""
-            last_ts  = chunk_rows[-1][2] if chunk_rows else ""
-
-            tr_parts = []
-            for chunk_txt, chunk_lang, _ in chunk_rows:
-                t = tr(chunk_txt, tgt, chunk_lang)
-                if t and t.strip():
-                    tr_parts.append(t.strip())
-
-            if len(tr_parts) > 1:
-                prev_html = esc(" ".join(tr_parts[:-1])) + " "
-            else:
-                prev_html = ""
-            new_html = esc(tr_parts[-1]) if tr_parts else ""
-
-            full_tr   = " ".join(tr_parts)
-            js_full   = json.dumps(full_tr)
-            n_chunks  = len(chunk_rows)
-
-            char_count     = len(full_tr)
-            chars_per_line = max(1, int(300 / (fpx * 0.55)))
-            lines          = max(1, -(-char_count // chars_per_line))
-            card_h         = max(180, lines * (fpx + 12) + 100)
-
-            st.components.v1.html(PALETTE + f"""
-<style>
-body{{padding:5px 0 3px;background:transparent;}}
-.stage{{
-  background:#060606;border-radius:18px;
-  padding:22px 20px 18px;position:relative;overflow:hidden;
+  font-size:11px;font-family:monospace;margin-bottom:8px;
 }}
-.glow{{
-  position:absolute;inset:-1px;z-index:0;border-radius:18px;pointer-events:none;
-  background:linear-gradient(135deg,rgba(206,17,38,.22),transparent 40%,rgba(0,122,61,.22));
-}}
-.stage::after{{
-  content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,#ce1126 0%,#ce1126 33%,#000 33%,#000 66%,#007a3d 66%);
-  z-index:1;
-}}
-.live-badge{{
-  display:inline-flex;align-items:center;gap:5px;
+.dot{{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block;}}
+.dot.live{{background:#00c65e;box-shadow:0 0 0 3px rgba(0,198,94,.15);
+  animation:dp 1.2s infinite;}}
+.dot.wait{{background:#333;}}
+@keyframes dp{{0%,100%{{opacity:1}}50%{{opacity:.15}}}}
+#statuslbl{{color:#f2ede3;}}
+
+/* ── live card ── */
+#live-wrap{{margin-bottom:6px;}}
+.stage{{background:#060606;border-radius:18px;padding:22px 20px 18px;position:relative;overflow:hidden;}}
+.glow{{position:absolute;inset:-1px;z-index:0;border-radius:18px;pointer-events:none;
+  background:linear-gradient(135deg,rgba(206,17,38,.22),transparent 40%,rgba(0,122,61,.22));}}
+.stage::after{{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,#ce1126 0%,#ce1126 33%,#000 33%,#000 66%,#007a3d 66%);z-index:1;}}
+.live-badge{{display:inline-flex;align-items:center;gap:5px;
   background:rgba(253,107,75,.1);border:1px solid rgba(253,107,75,.3);
   border-radius:6px;padding:2px 9px;margin-bottom:10px;
   font-size:10px;color:#ff8a6a;font-family:'JetBrains Mono',monospace;
-  font-weight:700;letter-spacing:.08em;position:relative;z-index:2;
-}}
+  font-weight:700;letter-spacing:.08em;position:relative;z-index:2;}}
 @keyframes bl{{0%,100%{{opacity:1}}50%{{opacity:.3}}}}
-.dot{{width:6px;height:6px;border-radius:50%;background:#ff8a6a;
-  animation:bl 1s infinite;display:inline-block;}}
-.body{{
-  font-size:{fpx}px;font-weight:700;line-height:1.7;
-  font-family:{tgt_font};
-  {tgt_sty}
-  position:relative;z-index:2;
-  word-break:break-word;
-}}
-.body .old{{color:#f2ede3;}}
-.body .new{{color:#fd6b4b;}}
+.bdot{{width:6px;height:6px;border-radius:50%;background:#ff8a6a;animation:bl 1s infinite;display:inline-block;}}
+.body{{font-size:{fpx}px;font-weight:700;line-height:1.7;
+  font-family:{tgt_font};{tgt_sty}position:relative;z-index:2;word-break:break-word;}}
+.body .old{{color:#f2ede3;}}.body .new{{color:#fd6b4b;}}
 @keyframes pop{{from{{opacity:.2;transform:translateY(4px)}}to{{opacity:1;transform:none}}}}
-.body .new{{animation:pop .3s ease;}}
-.meta{{font-family:'JetBrains Mono',monospace;font-size:10px;color:#333;
-  margin-top:10px;position:relative;z-index:2;}}
-</style>
-<div class="stage">
-  <div class="glow"></div>
-  <div class="live-badge"><span class="dot"></span> LIVE · {n_chunks} {esc(T("chunks"))}</div>
-  <div class="body" dir="{tgt_dir}">
-    <span class="old">{prev_html}</span><span class="new">{new_html}</span>
-  </div>
-  <div class="meta">🕐 {esc(last_ts)} · {esc(src_lang.upper())} → {esc(tgt.upper())}</div>
-</div>
-""", height=card_h)
+.body .new{{animation:pop .25s ease;}}
+.meta{{font-family:'JetBrains Mono',monospace;font-size:10px;color:#333;margin-top:10px;position:relative;z-index:2;}}
 
-            st.components.v1.html(PALETTE + f"""
-<style>
-body{{background:transparent;padding:4px 0 5px;}}
-.row{{display:flex;gap:8px;}}
-.btn{{
-  flex:1;background:#060606;border:1px solid #161616;border-radius:12px;
+/* ── action buttons ── */
+.row{{display:flex;gap:8px;margin:4px 0 6px;}}
+.btn{{flex:1;background:#060606;border:1px solid #161616;border-radius:12px;
   padding:12px 8px;color:#333;font-size:12px;cursor:pointer;
   font-family:'Cairo',sans-serif;font-weight:700;text-align:center;
-  -webkit-tap-highlight-color:transparent;transition:all .18s;
-}}
+  -webkit-tap-highlight-color:transparent;transition:all .18s;}}
 .btn:active{{background:#161616;color:#f2ede3;transform:scale(.96);}}
-.btn:hover{{background:#0a0a0a;color:#f2ede3;border-color:#007a3d;
-  box-shadow:0 3px 12px rgba(0,122,61,.12);}}
+.btn:hover{{background:#0a0a0a;color:#f2ede3;border-color:#007a3d;box-shadow:0 3px 12px rgba(0,122,61,.12);}}
 #cm{{color:#00c65e;font-size:11px;opacity:0;transition:opacity .3s;align-self:center;}}
+
+/* ── full-screen overlay ── */
 #fs{{display:none;position:fixed;inset:0;background:#000;z-index:99999;
   align-items:center;justify-content:center;cursor:pointer;
   flex-direction:column;text-align:{fs_align};padding:32px;}}
-#fs-t{{
-  color:#f2ede3;font-weight:700;line-height:1.55;
+#fs-t{{color:#f2ede3;font-weight:700;line-height:1.55;
   font-size:clamp(24px,6vw,60px);max-width:95%;
-  direction:{tgt_dir};font-family:{tgt_font};
-  word-break:break-word;
-}}
+  direction:{tgt_dir};font-family:{tgt_font};word-break:break-word;}}
 #fs-b{{position:absolute;bottom:0;left:0;right:0;height:4px;
   background:linear-gradient(90deg,#ce1126 0%,#ce1126 33%,#000 33%,#000 66%,#007a3d 66%);}}
 #fs-h{{position:absolute;bottom:20px;font-size:11px;color:#1a1a1a;font-family:monospace;}}
-</style>
-<div class="row">
-  <button class="btn" onclick="speak()">{esc(T("speak_aloud"))}</button>
-  <button class="btn" onclick="copy()">{esc(T("copy_btn"))}</button>
-  <button class="btn" onclick="openfs()">{esc(T("full_btn"))}</button>
-  <span id="cm">✓</span>
-</div>
-<div id="fs" onclick="closefs()">
-  <div id="fs-t" dir="{tgt_dir}">{esc(full_tr)}</div>
-  <div id="fs-h">{esc(T("tap_close"))}</div>
-  <div id="fs-b"></div>
-</div>
-<script>
-const TX={js_full},L="{esc(tgt)}";
-function speak(){{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(TX);u.lang=L;speechSynthesis.speak(u);}}
-function copy(){{navigator.clipboard.writeText(TX).then(()=>{{const m=document.getElementById('cm');m.style.opacity='1';setTimeout(()=>m.style.opacity='0',2000);}}).catch(()=>{{}});if(navigator.vibrate)navigator.vibrate(40);}}
-function openfs(){{document.getElementById('fs').style.display='flex';}}
-function closefs(){{document.getElementById('fs').style.display='none';}}
-</script>
-""", height=56)
 
-        sealed_cards = [c for c in all_cards if c[2]]
-        if sealed_cards:
-            st.markdown(f"""
-<div style='margin:8px 0 4px;font-size:10px;color:#444;text-align:center;
-  font-family:monospace;letter-spacing:.12em;'>{esc(T("previous"))}</div>
-""", unsafe_allow_html=True)
+/* ── waiting state ── */
+#waiting{{padding:30px 0;text-align:center;display:none;}}
 
-            prev_html = ""
-            for cid, chunk_rows, _ in sealed_cards:
-                if not chunk_rows: continue
-                src_lang = chunk_rows[0][1]
-                ts       = chunk_rows[-1][2]
-                tr_parts = []
-                for ct, cl, _ in chunk_rows:
-                    t = tr(ct, tgt, cl)
-                    if t and t.strip(): tr_parts.append(t.strip())
-                full_tr = " ".join(tr_parts)
-                d2  = dir_attr(tgt)
-                rs2 = rtl_style(tgt)
-                tf2 = ("'Noto Naskh Arabic','Cairo',sans-serif"
-                       if d2 == "rtl" else "'Cairo',sans-serif")
-                prev_html += f"""
-<div class="pc">
-  <div class="at" dir="{d2}" style="{rs2}font-family:{tf2};">{esc(full_tr)}</div>
-  <div class="ats">🕐 {esc(ts)} · {esc(src_lang.upper())} → {esc(tgt.upper())} · {len(chunk_rows)} {esc(T("chunks"))}</div>
-</div>"""
-
-            sealed_h = min(50 + len(sealed_cards) * 100, 1600)
-            st.components.v1.html(PALETTE + f"""
-<style>
-body{{background:transparent;padding:2px 0 20px;}}
+/* ── previous cards ── */
+#prev-label{{margin:10px 0 4px;font-size:10px;color:#444;text-align:center;
+  font-family:monospace;letter-spacing:.12em;}}
 .pc{{background:#0d0d0d;border:1px solid #1a1a1a;border-radius:14px;
-  padding:14px 16px;margin:5px 0;transition:border-color .2s;}}
-.pc:hover{{border-color:#2a2a2a;}}
+  padding:14px 16px;margin:5px 0;}}
 .at{{font-size:15px;font-weight:600;color:#888;line-height:1.7;word-break:break-word;}}
 .ats{{font-size:10px;color:#333;font-family:'JetBrains Mono',monospace;margin-top:6px;}}
 </style>
-{prev_html}
-""", height=sealed_h)
 
-    live_display()
+<!-- Status bar -->
+<div id="statusbar">
+  <span class="dot wait" id="dot"></span>
+  <span id="statuslbl">{waiting_lbl}</span>
+</div>
+
+<!-- Live card -->
+<div id="live-wrap" style="display:none;">
+  <div class="stage">
+    <div class="glow"></div>
+    <div class="live-badge"><span class="bdot"></span> <span id="badge-txt">LIVE · 0 {chunks_lbl}</span></div>
+    <div class="body" dir="{tgt_dir}" id="body-txt">
+      <span class="old" id="old-txt"></span><span class="new" id="new-txt"></span>
+    </div>
+    <div class="meta" id="meta-txt"></div>
+  </div>
+  <div class="row">
+    <button class="btn" onclick="speakIt()">{speak_aloud_lbl}</button>
+    <button class="btn" onclick="copyIt()">{copy_lbl}</button>
+    <button class="btn" onclick="openFs()">{full_lbl}</button>
+    <span id="cm">✓</span>
+  </div>
+</div>
+
+<!-- Waiting placeholder -->
+<div id="waiting">
+  <div style="font-size:42px;margin-bottom:9px">⏳</div>
+  <div style="font-size:14px;color:#888;font-family:'Cairo',sans-serif;">{waiting_msg}</div>
+  <div style="font-size:11px;color:#555;margin-top:5px;font-family:'Cairo',sans-serif;">{will_bcast_msg}</div>
+</div>
+
+<!-- Previous sealed cards -->
+<div id="prev-label" style="display:none;">{previous_lbl}</div>
+<div id="prev-cards"></div>
+
+<!-- Full-screen overlay -->
+<div id="fs" onclick="closeFs()">
+  <div id="fs-t" dir="{tgt_dir}"></div>
+  <div id="fs-h">{tap_close_lbl}</div>
+  <div id="fs-b"></div>
+</div>
+
+<script>
+(function(){{
+  const API   = 'http://localhost:{API_PORT}';
+  const ROOM  = '{esc(room)}';
+  const TGT   = '{esc(tgt)}';
+  const CHUNKS_LBL = '{chunks_lbl}';
+
+  const dot      = document.getElementById('dot');
+  const statusLbl= document.getElementById('statuslbl');
+  const liveWrap = document.getElementById('live-wrap');
+  const waiting  = document.getElementById('waiting');
+  const badgeTxt = document.getElementById('badge-txt');
+  const oldTxt   = document.getElementById('old-txt');
+  const newTxt   = document.getElementById('new-txt');
+  const metaTxt  = document.getElementById('meta-txt');
+  const fsEl     = document.getElementById('fs');
+  const fsTxt    = document.getElementById('fs-t');
+  const prevLabel= document.getElementById('prev-label');
+  const prevCards= document.getElementById('prev-cards');
+
+  let sinceId = 0;
+  // Per-card accumulation: cardId → {{texts: [...], lang, ts, sealed}}
+  const cards = {{}};
+  let liveCardId = null;
+
+  function getCardTexts(cid) {{
+    return (cards[cid]?.texts || []).join(' ');
+  }}
+
+  function renderLive() {{
+    if (!liveCardId || !cards[liveCardId]) {{
+      liveWrap.style.display = 'none';
+      waiting.style.display  = 'block';
+      dot.className = 'dot wait';
+      statusLbl.textContent = '{waiting_lbl}';
+      return;
+    }}
+    waiting.style.display  = 'none';
+    liveWrap.style.display = 'block';
+    dot.className = 'dot live';
+    statusLbl.textContent = '🔴 {live_dot_msg} · {streaming_msg}';
+
+    const txts  = cards[liveCardId].texts;
+    const lang  = cards[liveCardId].lang || '';
+    const ts    = cards[liveCardId].ts   || '';
+    const n     = txts.length;
+    const full  = txts.join(' ');
+
+    if (n > 1) {{
+      oldTxt.textContent = txts.slice(0, -1).join(' ') + ' ';
+    }} else {{
+      oldTxt.textContent = '';
+    }}
+    // Force re-trigger animation on new text
+    newTxt.style.animation = 'none';
+    newTxt.offsetHeight;  // reflow
+    newTxt.style.animation = '';
+    newTxt.textContent = txts[n-1] || '';
+
+    badgeTxt.textContent = 'LIVE · ' + n + ' ' + CHUNKS_LBL;
+    metaTxt.textContent = '🕐 ' + ts + ' · ' + (lang.toUpperCase() || 'AUTO') + ' → ' + TGT.toUpperCase();
+    fsTxt.textContent = full;
+  }}
+
+  function renderPrevious() {{
+    const sealed = Object.entries(cards)
+      .filter(([cid,v]) => v.sealed && cid !== liveCardId)
+      .sort((a,b) => b[1].maxId - a[1].maxId);
+
+    if (sealed.length === 0) {{
+      prevLabel.style.display = 'none';
+      prevCards.innerHTML = '';
+      return;
+    }}
+    prevLabel.style.display = 'block';
+    prevCards.innerHTML = sealed.map(([cid,v]) => {{
+      const full = v.texts.join(' ');
+      const d = ('{tgt_dir}');
+      const rs = d==='rtl' ? 'direction:rtl;text-align:right;unicode-bidi:embed;' : 'direction:ltr;text-align:left;';
+      const tf = d==='rtl' ? "'Noto Naskh Arabic','Cairo',sans-serif" : "'Cairo',sans-serif";
+      return `<div class="pc">
+        <div class="at" dir="${{d}}" style="${{rs}}font-family:${{tf}};">${{full}}</div>
+        <div class="ats">🕐 ${{v.ts}} · ${{(v.lang||'').toUpperCase()}} → {esc(tgt.upper())} · ${{v.texts.length}} {chunks_lbl}</div>
+      </div>`;
+    }}).join('');
+  }}
+
+  async function poll() {{
+    try {{
+      const res  = await fetch(`${{API}}/api/poll?room=${{ROOM}}&since=${{sinceId}}&tgt=${{TGT}}`);
+      const data = await res.json();
+      if (!data.chunks || data.chunks.length === 0) {{ return; }}
+
+      for (const ch of data.chunks) {{
+        if (ch.id > sinceId) sinceId = ch.id;
+        const cid = ch.card_id;
+        const txt = ch.translated || ch.txt;
+
+        if (!cards[cid]) cards[cid] = {{texts:[], lang:ch.lang, ts:ch.ts, sealed:false, maxId:0}};
+        const card = cards[cid];
+        card.ts = ch.ts;
+        if (ch.id > card.maxId) card.maxId = ch.id;
+
+        if (ch.interim) {{
+          // Replace the last slot if it's interim, else push
+          if (card._lastInterim) {{
+            card.texts[card.texts.length-1] = txt;
+          }} else {{
+            card.texts.push(txt);
+            card._lastInterim = true;
+          }}
+        }} else {{
+          // Final: replace interim slot or push new
+          if (card._lastInterim && card.texts.length > 0) {{
+            card.texts[card.texts.length-1] = txt;
+          }} else {{
+            card.texts.push(txt);
+          }}
+          card._lastInterim = false;
+        }}
+
+        if (ch.sealed) {{
+          card.sealed = true;
+          if (liveCardId === cid) liveCardId = null;
+        }} else {{
+          liveCardId = cid;
+        }}
+      }}
+
+      renderLive();
+      renderPrevious();
+    }} catch(e) {{
+      // network hiccup — skip silently
+    }}
+  }}
+
+  // Start polling every 1 second
+  setInterval(poll, 1000);
+  poll();  // immediate first call
+
+  // ── Utility buttons ──────────────────────────────────────────────────────
+  window.speakIt = function() {{
+    const txt = liveCardId ? getCardTexts(liveCardId) : '';
+    if (!txt) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(txt);
+    u.lang = TGT; speechSynthesis.speak(u);
+  }};
+  window.copyIt = function() {{
+    const txt = liveCardId ? getCardTexts(liveCardId) : '';
+    if (!txt) return;
+    navigator.clipboard.writeText(txt).then(()=>{{
+      const m=document.getElementById('cm'); m.style.opacity='1';
+      setTimeout(()=>m.style.opacity='0',2000);
+    }}).catch(()=>{{}});
+    if(navigator.vibrate) navigator.vibrate(40);
+  }};
+  window.openFs  = function() {{ fsEl.style.display='flex'; }};
+  window.closeFs = function() {{ fsEl.style.display='none'; }};
+
+}})();
+</script>
+""", height=700)
